@@ -1,0 +1,46 @@
+<html>
+<head>
+	<title>title</title>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+	<script type="text/javascript" src="../ve.standalone.js"></script>
+        <script>
+        var $ = function(id){return document.getElementById(id)};
+        </script>
+</head>
+<body>
+	<strong style="padding:10px; display:block;">普通调用</strong>
+	<div id="ed1" style="border:2px solid #eee; width:500px"><!-- 容器 --></div>
+        <input type="button" value="设置内容" id="setBtn"/>
+        <input type="button" value="获取内容" id="getBtn"/>
+        <input type="button" value="插入内容" id="insBtn"/>
+	<script type="text/javascript">
+
+                //编辑器初始化语句
+                var editor = VEditor.create({
+			container: 'ed1', //指定容器
+			width: '100%',    
+			height: 200,	  //指定高度	
+			plugins: 'history,save,htmleditor',  //指定需要加在的插件列表，以逗号分隔
+			buttons: 'html,save|undo,redo' //工具条按钮配置，逗号分隔按钮，竖线分组
+		});
+                console.log(editor);
+
+                //设置内容
+                $('setBtn').onclick = function(){
+                    editor.setContent({content:'helloworld'});
+                }
+                
+                //读取内容
+                $('getBtn').onclick = function(){
+                    alert(editor.getContent());
+                }
+
+                //插入内容
+                $('insBtn').onclick = function(){
+                    editor.insertHtml({content:'more..'});
+                }
+  
+
+	</script>
+</body>
+</html>

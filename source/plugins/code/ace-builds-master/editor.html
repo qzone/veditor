@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Editor</title>
+  <script type="text/javascript">
+	document.domain = 'qq.com';
+
+	var ucfirst = function(str){
+		return str.charAt(0).toUpperCase() + str.slice(1);
+	};
+
+	var DEF_LANG = 'javascript';
+	var DEF_THEME = 'tomorrow';
+
+	//LANGS
+	var _langs = 'abap,asciidoc,c9search,clojure,coffee,ColdFusion,CSharp,CSS,curly,c_cpp,dart,diff,django,dot,ftl,glsl,golang,groovy,haml,haxe,HTML,jade,java,javascript,JSON,JSP,jsx,latex,less,liquid,lisp,liveScript,logiql,lsl,lua,luapage,lucene,makefile,markdown,mushcode,mushcode_high_rules,objectiveC,ocaml,pascal,perl,pgsql,PHP,powerShell,python,r,rdoc,rhtml,ruby,sass,scad,scala,scheme,scss,sh,SQL,stylus,SVG,tcl,TEX,text,textile,tmsnippet,toml,typescript,VBScript,velocity,XML,xquery,YAML'.split(',');
+	var LANG_HTML = '<select name="lang" id="lang" onchange="changeLang(this.value)">';
+	for(var i=0; i<_langs.length; i++){
+		LANG_HTML += ('<option value="'+_langs[i].toLowerCase()+'"'+(DEF_LANG == _langs[i].toLowerCase() ? ' selected' : '')+'>'+ucfirst(_langs[i])+'</option>');
+	}
+	LANG_HTML += '</select>';
+
+	//THEMES
+	var _themes = {
+		ambiance:['#202020','#9b859d'],
+		chaos:['#161616','#997744'],
+		chrome:['#ffffff','#318495'],
+		clouds:['#ffffff','#000000'],
+		clouds_midnight:['#191919','#929292'],
+		cobalt:['#002240','#ff80e1'],
+		crimson_editor:['#fff','#004080'],
+		dawn:['#f9f9f9','#234a97'],
+		dreamweaver:['#fff','#0066ff'],
+		eclipse:['#ffffff','#7f0055'],
+		github:['#ffffff','#0086b3'],
+		idle_fingers:['#323232','#ffffff'],
+		kr:['#ffffff','#c82829'],
+		merbivore:['#161616','#e6e1dc'],
+		merbivore_soft:['#1c1c1c','#e6e1dc'],
+		monokai:['#272822','#a6e22e'],
+		mono_industrial:['#222c28','#648bd2'],
+		pastel_on_dark:['#2c2828','#c1c144'],
+		solarized_dark:['#002b36','#268bd2'],
+		solarized_light:['#fdf6e3','#268bd2'],
+		terminal:['#000000','#d54e53'],
+		textmate:['#ffffff','#318495'],
+		tomorrow:['#ffffff','#c82829'],
+		tomorrow_night:['#1d1f21','#cc6666'],
+		tomorrow_night_blue:['#002451','#ff9da4'],
+		tomorrow_night_bright:['#000000','#d54e53'],
+		tomorrow_night_eighties:['#2d2d2d','#f2777a'],
+		twilight:['#141414','#7587a6'],
+		vibrant_ink:['#0f0f0f','#ffcc00'],
+		xcode:['#ffffff','#c800a4']
+	};
+
+	var THEME_HTML = '<select name="theme" id="theme" onchange="changeTheme(this.value)">';
+	for(var item in _themes){
+		THEME_HTML += ('<option style="background-color:'+_themes[item][0]+';color:'+_themes[item][1]+'" value="'+item.toLowerCase()+'"'+(DEF_THEME == item.toLowerCase() ? ' selected' : '')+'>'+ucfirst(item)+'</option>');
+	}
+	THEME_HTML += '</select>';
+  </script>
+  <style type="text/css" media="screen">
+    body {overflow:hidden;padding:0; margin:0; font-size:12px; background-color:#555}
+	.editor-wrap {height:488px; overflow-x:hidden; overflow-y:scroll;}
+	.op-row {padding:4px 10px;color:white;}
+	#submit {float:right;}
+    #editor {height:20000px; width:860px; background-color:black;}
+	#editor .ace_scrollbar {display:none;}
+  </style>
+</head>
+<body>
+<div class="op-row">
+	<label for="lang">选择语言</label>
+	<script type="text/javascript">document.write(LANG_HTML);</script>
+	&nbsp;&nbsp;
+	<label for="theme">选择主题</label>
+	<script type="text/javascript">document.write(THEME_HTML);</script>
+	<span style="color:#BEC42E; padding-left:10px;">当前版本最多只能输入1000行代码</span>
+	<button id="submit" onclick="submit()">插入代码</button>
+</div>
+<div class="editor-wrap"><div id="editor"></div></div>
+
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+	top.VEDITOR_CODE_HTML_CONTENT = '';
+	var $ = function(id){return document.getElementById(id);};
+	var MERGE_STYLE_ARR = 'color,background-color,border,border-top,border-right,border-bottom,border-left'.split(',');
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/"+DEF_THEME);
+    editor.getSession().setMode("ace/mode/"+DEF_LANG);
+
+	function changeLang(lang){
+		editor.getSession().setMode('ace/mode/'+lang);
+	}
+
+	function changeTheme(theme){
+		editor.setTheme('ace/theme/'+theme);
+	};
+
+	var submit = (function(){
+		var rgb2Hex = function(color){
+			color = String(color);
+			if(color.indexOf('rgb') == 0){
+				color = color.replace(/[a-zA-Z]/g,'').replace(/\)/g,'').replace(/\(/g,'').replace(/\s/g,'');
+				var ar = color.split(',');
+				r = parseInt(ar[0]),
+                g = parseInt(ar[1]),
+                b = parseInt(ar[2]);
+				return ['#', r < 16 ? '0' : '', r.toString(16), g < 16 ? '0' : '', g.toString(16), b < 16 ? '0' : '', b.toString(16)].join('');
+			}
+			return color;
+		};
+
+		var _getStyle = function(n, na, c){
+			var isIE = document.attachEvent;
+			if(document.defaultView && c) {	// Gecko
+				na = na.replace(/[A-Z]/g, function(a){	// Remove camelcase
+					return '-' + a;
+				});
+				try {
+					return document.defaultView.getComputedStyle(n, null).getPropertyValue(na);} catch (ex) {
+					return null;
+				}
+			}
+			na = na.replace(/-(\D)/g, function(a, b){	// Camelcase it, ifneeded
+				return b.toUpperCase();
+			});
+			if(na == 'float'){
+				na = isIE ? 'styleFloat' : 'cssFloat';
+			}
+			if(n.currentStyle && c){
+				return n.currentStyle[na];
+			}
+			return n.style[na];
+		}
+
+
+		var _checkIsDup = (function(){
+			var _CACHE = {};
+			return function(key, val, checkPoint){
+				if(key.toLowerCase().indexOf('border') == 0 && val.indexOf('0px') == 0){
+					return true;
+				}
+				if(!_CACHE[key]){
+					_CACHE[key] = _getStyle(checkPoint, key, true);
+				}
+				if(_CACHE[key] == val){
+					return true;
+				}
+				return false;
+			}
+		})();
+
+		var _getStyleStr = function (n, parent){
+			var s = [];
+			for(var i=0; i<MERGE_STYLE_ARR.length; i++){
+				var str = _getStyle(n, MERGE_STYLE_ARR[i], true);
+				if(str && !_checkIsDup(MERGE_STYLE_ARR[i], str, parent)){
+					s.push(MERGE_STYLE_ARR[i]+':'+rgb2Hex(str));
+				}
+			}
+			return (n.style.cssText ? (n.style.cssText+';') : '')+s.join(';');
+		}
+
+		var _setConStyle = function (el, parent){
+			if(el.nodeType == 1 && !el.getAttribute('data-style')){
+				var s = _getStyleStr(el, parent);
+				el.setAttribute('data-style', _getStyleStr(el, parent));
+			}
+			if(el.childNodes.length){
+				for(var i=0; i<el.childNodes.length; i++){
+					_setConStyle(el.childNodes[i], parent);
+				}
+			}
+		};
+
+		var _trim = function(str){
+			str = str || '';
+			return str.replace(/^\s+|\s+$/g, '');
+		};
+
+		var _trimAttr = function(attr){
+			attr = _trim(attr);
+			if(/^["|'](.*)['|"]$/.test(attr)){
+				return attr.substring(1, attr.length-1);
+			}
+			return attr;
+		};
+
+		var ATTR_SEP_EXP = /([\w\-:.]+)(?:(?:\s*=\s*(?:(?:"([^"]*)")|(?:'([^']*)')|([^\s>]+)))|(?=\s|$))/g;
+		var _getHtml = function(el, parent){
+			var bc = _getStyle(parent, 'background-color', true);
+			el.setAttribute('data-style', 'background:'+rgb2Hex(bc)+';'+el.getAttribute('data-style')+';padding:5px 5px 10px');
+			var html = el.outerHTML;
+			html = html.replace(/<(\w+)\s+([^>]+)>/gi, function(){
+				var arg = arguments;
+				var rst = {style:''};
+				var arr = (' '+arg[2]).match(ATTR_SEP_EXP);
+				if(arr && arr.length){
+					for(var i=0; i<arr.length; i++){
+						var spos = arr[i].indexOf('=');
+						var key = arr[i].substring(0, spos);
+						var val = _trimAttr(arr[i].substring(spos+1)) || '';
+						if(key.toLowerCase() == 'class'){
+
+						}
+						else if(key.toLowerCase() == 'style'){
+							//rst.style = (rst.style ? rst.style+';' : '') + val;
+						}
+
+						else if(key.toLowerCase() == 'data-style'){
+							rst.style = val + (rst.style ? ';'+rst.style : '');
+						}
+						else {
+							rst[key] = val;
+						}
+					}
+
+					var attStr = [];
+					for(var i in rst){
+						attStr.push(i+'="'+rst[i]+'"');
+					}
+					return '<'+arg[1]+' '+attStr.join(' ')+'>';
+				}
+				return arg[0];
+			});
+			return html;
+		};
+
+		return function(){
+			var val = editor.getValue();
+			if(!_trim(val)){
+				alert('请输入代码');
+				return;
+			}
+			var divs = editor.renderer.content.getElementsByTagName('div');
+			var el;
+			for(var i=0; i<divs.length; i++){
+				if(/(\s|^)ace_text\-layer(\s|$)/i.test(divs[i].className)){
+					el = divs[i];
+					break;
+				}
+			}
+
+			if(!el){
+				return;
+			}
+			_setConStyle(el, el.parentNode);
+			var html = '<div>&nbsp;</div>'+_getHtml(el,el.parentNode.parentNode)+'<div>&nbsp;</div>';
+			top.VEDITOR_CODE_HTML_CONTENT = html;
+			top.QZONE.FP.closePopup();
+		}
+	})();
+</script>
+
+</>
+</html>

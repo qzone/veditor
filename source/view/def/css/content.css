@@ -1,0 +1,14 @@
+html,body {padding:0; margin:0; line-height:1.6; font-family:Arial; font-size:14px;}
+body {background-color: transparent; word-break:break-all;}
+p {margin:0; line-height:1.6}
+a{border:none}
+a img{border:0px;}
+a.blog_mention_link {text-decoration: none}
+img.blog_music {width:351px; height:111px; background:url("../img/music_cover.jpg") no-repeat 0 0 #fff; border:1px solid #ddd}
+img.blog_music_multiple {width:381px; height:191px; background:url("../img/music_cover_multi.jpg") no-repeat 0 0 #fff; border:1px solid #ddd}
+img.blog_video {background:url("../img/video_cover.gif") no-repeat center #fff; margin:2px; border:1px solid #ddd}
+img.blog_flash {background:url("../img/flash_cover.gif") no-repeat center #fff; margin:2px; border:1px solid #ddd}
+img.image_uploading {background:url("../img/img_uploading.gif") 50% no-repeat #f6f6f6; cursor:wait}
+img.image_reupload {background:url("../img/img_reupload.png") 50% no-repeat #f6f6f6; cursor:pointer;}
+img.image_loading {background:url("../img/img_loading.png") 50% no-repeat #f6f6f6}
+img.image_error {background:url("../img/img_error.png") 50% no-repeat #f6f6f6}

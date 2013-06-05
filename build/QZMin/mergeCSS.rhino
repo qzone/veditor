@@ -1,0 +1,197 @@
+/**
+ * @fileoverview css merge 工具
+ * @author PuterJam
+ * @version 1.0
+ */
+ 
+// class defined ----------------------------------------
+/**
+ * File IO Class
+ * @constructor
+ * @classDescription File IO Class
+ */
+var IO = {
+	/**
+	 * file encoding
+	 */
+	enoding: "utf-8",
+
+	/**
+	 * read File Contents
+	 * @param {string} filePath Path to file to open.
+	 * @param {string} content save contents to file
+	 * @param {boolean} append Open in append mode?
+	 */
+	saveFile: function(filePath, content, append) {
+		var _file = this.openFile(filePath, append);
+        _file.write(content);
+		_file.flush();
+		_file.close();
+    },
+		
+	/**
+	 * read File Contents
+	 * @param {string} filePath Path to file to read.
+	 */
+	readFile: function(filePath) {
+        return readFile(filePath, this.encoding);
+    },
+
+	/**
+	 * open file to string
+	 * @param {string} filePath Path to file to open.
+	 * @param {boolean} append Open in append mode?
+	 * @return {PrintWriter} return Print Writer
+	 */
+	openFile: function(filePath, append){
+		append = append || false;
+		var _file = new Packages.java.io.File(filePath);
+		return new Packages.java.io.PrintWriter(new Packages.java.io.OutputStreamWriter(new Packages.java.io.FileOutputStream(_file, append), this.encoding));
+	},
+	
+	/**
+	 * set Class encoding
+	 * @param {Object} encoding
+	 */
+	setEncoding: function(encoding){
+		this.encoding = encoding;
+	}
+}
+
+
+
+var PROJECT_FILE = arguments[0];
+var projectPath = "";
+var mergeFiles;
+var suffix;
+var cssCharset;
+var basePath = "";
+var separator = Packages.java.io.File.separator;
+
+//run merge
+function run(){
+	if (!PROJECT_FILE) {
+		print(" >> can't open project file. :(");
+		print(" >> now quit.");
+		return
+	}
+	print(">> welcome to use qzCSSMerge 1.1, power by QZone Platform Front-end Team.");
+	print(">>");
+	
+	projectPath = getFilePath(PROJECT_FILE);
+	loadProject(PROJECT_FILE); //load Project file
+	doProject();
+}
+
+//get project file path
+function getFilePath(pfile){
+	var _file = new Packages.java.io.File(pfile);
+	return _file.getCanonicalPath().replace(_file.getName(),"");
+}
+
+//get project file path
+function getCanonicalPath(pfile){
+	var _file = new Packages.java.io.File(pfile);
+	return _file.getCanonicalPath();
+}
+
+//load Project file
+function loadProject(pfile){
+	//default
+	mergeFiles = [];
+	suffix = "_out";
+	cssCharset = "utf-8";
+	
+	//load file
+	load(pfile);
+	IO.setEncoding(cssCharset);
+}
+
+function doProject(){
+	for (var i=0;i<mergeFiles.length;i++){
+		var _sf = mergeFiles[i].split(".");
+		var outFile = projectPath + mergeFiles[i].replace(/.css/i,suffix + ".css");
+		print(">> Project [" + mergeFiles[i] + "] in proccess.");
+		IO.saveFile(outFile,'@charset "' + cssCharset + '";\n.cssStart{display:none}\n' + minCSS(projectPath + mergeFiles[i]) + ".cssEnd{display:none}");
+		print (">>");
+		print(">> Action: [" + outFile + "] output.");
+		print();
+	}
+}
+
+function minCSS(cssFile,pathLevel,_basePath){
+	pathLevel = pathLevel || 0;
+	cssFile = getCanonicalPath(cssFile);
+	
+	var _f = IO.readFile(cssFile);
+	print (">>      file length: " + _f.length + " byte.");
+	print (">>");
+	var importCSS = [];
+	var pathCount = 0;
+	
+	var _path = getFilePath(cssFile);
+	var _cssFileName = cssFile.substr(_path.length());
+	
+	
+	if (pathLevel != 0) { //第一层级不做路径修正
+		var subPath = _path.substr(_basePath.length());
+		var re = new RegExp("\\w+\\" + separator,"g");
+		var _pexec = re.exec(subPath)
+		
+		pathCount = _pexec?_pexec.length:0;
+	}else{ //如果是第一层样式，则把这个样式的路径做为样式的基准路径
+		_basePath = getFilePath(cssFile);
+	}
+	
+	//get import css
+	var re = /@import url\("(.*?)"\);/ig;
+
+	//过滤注释
+
+	print (">> Action: [" + _cssFileName + "]  clear comment.");
+	_f = _f.replace(/\/\*((.|\s)*?)\*\//ig,"");
+	
+	var _pL = pathLevel + 1;
+	var arr = _f.match(re);
+	
+	for (k in arr) {
+		var _name = arr[k].split('"')[1];
+		var _fullPath = getCanonicalPath(_path + _name);
+		if (cssFile == _fullPath){
+			continue;
+		}
+		print (">> ");	print (">> ");
+		print (">> get import file: [" + _name + "] ... merged.");
+				print (">> path: \"" + _fullPath + "\"");
+		importCSS.push(minCSS(_fullPath,_pL,_basePath));
+	}
+	
+
+
+	//缩进样式
+	//_f = _f.replace(/[]*/g,""); //这句话异常慢
+	print (">> ");
+	print (">> --------------------------");
+	
+	print (">> Action: [" + _cssFileName + "]  move blank line.");
+	_f = _f.replace(/^[\x20\s]*/mg,"");
+
+	print (">> Action: [" + _cssFileName + "]  move import & charset tag.");
+	_f = _f.replace(/@(import|charset) (.*?);/ig,"");
+	
+	print (">> Action: [" + _cssFileName + "]  move blank charset.");
+	_f = _f.replace(/\x20{0,1}(\{|\,|\;)\s*/g,"$1");
+	
+	print (">> Action: [" + _cssFileName + "]  add a newline in desinence.");
+	_f = _f.replace(/\}\s*/g,"}\n");
+
+
+	//修正图片路径问题
+	if (pathLevel != 0) { //第一层级不做路径修正
+		var re = new 	RegExp("(\\(.*?)(\\.\\.(\\\\|\\/)){"+pathCount+"}(.*?\\))","g");
+		_f = _f.replace(re,"$1$4");
+	}
+	return importCSS.join("") + _f;
+}
+
+run();

@@ -1,0 +1,19 @@
+.veToolbarContainer .veButton_veRedo,
+.veToolbarContainer .veButton_veOrderedList,
+.veToolbarContainer .veButton_veUnorderedList,
+.veToolbarContainer .veButton_veTabLeft,
+.veToolbarContainer .veButton_veTabRight,
+.veToolbarContainer .veButton_veHtml,
+.veToolbarContainer .veButton_veCode,
+.veToolbarContainer .veButton_veRemoveFormat,
+.veToolbarContainer .veButton_veInsertFlash {display: none}
+
+.veToolbarAdvMode .veButton_veRedo,
+.veToolbarAdvMode .veButton_veOrderedList,
+.veToolbarAdvMode .veButton_veUnorderedList,
+.veToolbarAdvMode .veButton_veTabLeft,
+.veToolbarAdvMode .veButton_veTabRight,
+.veToolbarAdvMode .veButton_veHtml,
+.veToolbarAdvMode .veButton_veCode,
+.veToolbarAdvMode .veButton_veRemoveFormat,
+.veToolbarAdvMode .veButton_veInsertFlash {display: block}

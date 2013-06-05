@@ -1,0 +1,441 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>日志上传文件生成日志</title>
+        <link rel="stylesheet" rev="stylesheet" href="http://qzonestyle.gtimg.cn/qzone_v6/qz_dialog.css" media="screen" type="text/css">
+        <link rel="stylesheet" rev="stylesheet" href="http://qzonestyle.gtimg.cn/qzone_v6/blog_popup.css" media="screen" type="text/css">
+		<script type="text/javascript">
+			document.domain = !!(/pengyou\.com$/.test(location.hostname)) ? 'pengyou.com' : 'qq.com';
+			document.write(([
+				'<script charset="utf-8" type="text/javascript" src="/ac/qzone/qzfl/qzfl'+parent.g_V.qz+'.js"><\/script>',
+				'<script charset="utf-8" type="text/javascript" src="/ac/qzfl/appclientlib.js"><\/script>',
+				'<script charset="utf-8" type="text/javascript" src="/qzone/newblog/v5/script/common.js"><\/script>'
+			]).join(''));
+		</script>
+    </head>
+    <body>
+		<div class="mod_word_blog">
+			<p class="hd">
+				您可以上传word文档生成一篇新日志。
+			</p>
+			<div class="bd" style="padding:20px 0 0; height:65px; overflow:hidden;">
+				<span id="flash-upload_btn" style="display:block; position:absolute; height:24px; width:80px; overflow:hidden">上传</span>
+
+				<!-- 文件选择面板 -->
+				<div class="default_show" id="select_file_panel">
+					<button class="bt_tip_normal" type="button" style="width:80px"><strong>选择文件</strong></button>
+					<span id="file_name" style="width:260px"></span>
+				</div>
+
+				<!-- 上传中 -->
+				<div class="upload_wrap" id="uploading_panel" style="display:none">
+					<div class="progress_bar">
+						<div class="progress" style="width:0%" id="progress"></div>
+					</div>
+					<p class="changing" id="progress-status">文件上传中···</p>
+				</div>
+
+				<!-- 上传完成 -->
+				<div class="upload_wrap" id="upload_complete_panel" style="display:none">
+					<div class="progress_bar">
+						<div class="progress" style="width:100%"></div>
+					</div>
+					<p class="suc"><span class="icon ico_suc"></span>
+						文件转换完毕，进入编辑...
+					</p>
+				</div>
+
+				<!-- 上传错误 -->
+				<div class="upload_wrap upload_error" id="upload_error_panel" style="display:none">
+					<div class="progress_bar">
+						<div class="progress" style="width:100%"></div>
+					</div>
+					<p class="error"><span class="icon ico_hint"></span>文件转换失败，<a href="javascript:;" id="retry-btn">重试</a></p>
+				</div>
+			</div>
+			<div class="ft">
+				<ul>
+					<li>▪ 目前只支持2MB以内的word文件（doc或docx）。
+					</li>
+					<li>▪ 转换文件工作量较大，速度会比较慢，请耐心等待。
+					</li>
+					<li>▪ 文字、图片及文字格式会得到保留。
+					</li>
+					<li>▪ word文档格式复杂，可能存在不能完全还原的情况。
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="global_tip_button">
+			<a class="bt_tip_normal" title="关闭" href="javascript:;" id="close-btn">关闭</a>
+			<a class="bt_tip_hit" title="上传文档" href="javascript:;" id="upload_btn">上传文档</a>
+		</div>
+<script type="text/javascript">
+(function(){
+	var WordUploader = {
+		STATUS: {
+			INIT: 0,
+			FILE_SELECTED: 1,
+			UPLOADING: 2,
+			UPLOAD_DONE: 3,
+			UPLOAD_ERR: 4,
+			TRANSFORM_DONE: 5,
+			TRANSFORM_ERR: 6
+		},
+		loginUin: QZBlog.Logic.SpaceHostInfo.getLoginUin(),
+		uploadURL: '',			//上传url
+		flashObj: null,			//上传flash对象
+		fileArr:[],				//已经选择的文件列表
+		bUploadStatus: 0,		//当前状态：0：文件未选择，1：文件已选择，2：上传中，3：上传完成，4：上传失败，5：转换完成，6：转换失败
+		progress: 0, // 上传进度
+		progressTimer: null, // 上传进度更新定时器
+		intervalID: null, // 转换进度更新id
+		text: '......',
+		maxDocNameLen: 24, // 12个汉字
+
+
+		/**
+		 * 初始化
+		 */
+		init: function(){
+			this.uploadURL = 'http://blogupload.qzone.qq.com/Converter/doc2html.php';
+			this.bindPageEvent();
+			this.initFlash();
+		},
+
+		/**
+		 * 初始化flash
+		 */
+		initFlash: function(){
+			var flashvars = [
+				'fileUploading=WordUploader.onFileUploading',
+				'fileUploadComplete=WordUploader.onFileUploadComplete',
+				'fileUploadError=WordUploader.onFileUploadError',
+				'fileSelected=WordUploader.onFileSelected',
+				'thread=1',
+				'fileFilter=doc|docx',
+				'useCodepage=1',
+				'mutilSelect=0'
+			];
+			QZFL.media.insertFlash($('flash-upload_btn'),{
+				"src" :IMGCACHE_BLOG_V6_PATH+"/swf/CommonFileUploader.swf",
+				"width" : "77",
+				"height" : "24",
+				"allowScriptAccess" : "always",
+				"id" : "simpleFileUploader",
+				"name" : "simpleFileUploader",
+				"wmode" : "transparent",
+				"flashvars" : flashvars.join('&')
+			});
+			this.flashObj = $('simpleFileUploader');
+		},
+
+		/**
+		 * 文件选择事件
+		 * @param {array} fileArr
+		 */
+		onFileSelected: function(fileArr){
+			if(fileArr.length){
+				this.fileArr = [];
+				this.bUploadStatus = this.STATUS.INIT;
+				if (fileArr[0].fileSize && fileArr[0].fileSize > 2*1024*1024){
+					$('file_name').innerHTML = '<span style="color:red">您选择的文件超过2MB</span>';
+					return;
+				}
+
+				var html = [];
+				for(var i=0; i<fileArr.length; i++){
+					html.push(fileArr[i].fileName);
+				}
+				if (html.length > 0){
+					var pos = html[0].lastIndexOf(".");
+					var lastname = html[0].substring(pos, html[0].length);
+					if (lastname.toLowerCase() != ".doc" && lastname.toLowerCase() != ".docx"){
+						$('file_name').innerHTML = '您选择的文件不是word文件';
+					} else {
+						this.fileArr = fileArr;
+						this.bUploadStatus = this.STATUS.FILE_SELECTED;
+						var realName = html[0].substring(0, pos);
+						if (QZFL.string.getRealLen(realName) > this.maxDocNameLen){
+							realName = realName.cutWord(this.maxDocNameLen) + '~';
+						}
+						$('file_name').innerHTML = realName + lastname;
+					}
+				}
+			}
+		},
+
+		/**
+		 * 文件上传事件
+		 * @param {object} fileInfo
+		 * @deprecate 这个函数会被执行多次
+		 */
+		onFileUploading: function(fileInfo){
+			this.bUploadStatus = this.STATUS.UPLOADING;
+			if(fileInfo && fileInfo.progress && this.progress < fileInfo.progress){
+				if (!!this.progressTimer){
+					clearTimeout(this.progressTimer);
+				}
+				this.progressTimer = setTimeout(this.updateProgress, 10, fileInfo.progress);
+			}
+		},
+
+		/**
+		 * 文件上传进度条更新
+		 * @param {progress} 目标进度
+		 * @deprecate 这个函数会被执行多次
+		 */
+		updateProgress: function(progress) {
+			if (WordUploader.progress <= progress){
+				WordUploader.progress++;
+				$('progress').style.width = WordUploader.progress + '%';
+				WordUploader.progressTimer = setTimeout(WordUploader.updateProgress, 10, progress);
+			}
+
+
+			if (WordUploader.progress == 100 && $("progress-status")){
+				if (!!WordUploader.progressTimer){
+					clearTimeout(WordUploader.progressTimer);
+					WordUploader.progressTimer = null;
+				}
+				WordUploader.bUploadStatus = WordUploader.STATUS.UPLOAD_DONE;
+				$("progress-status").innerHTML = "文件转换中，请耐心等待";
+				WordUploader.progress = 1;
+				if (WordUploader.intervalID != null){
+					clearInterval(WordUploader.intervalID);
+				}
+				WordUploader.intervalID = setInterval(WordUploader.updateProgressText, 500);
+			}
+
+		},
+
+		updateProgressText: function(){
+			if (!!$("progress-status")){
+				var text = "文件转换中，请耐心等待" + (WordUploader.progress > 0 ? WordUploader.text.substr(0, WordUploader.progress) : "");
+				$("progress-status").innerHTML = text;
+			}
+			if (++WordUploader.progress > WordUploader.text.length){
+				WordUploader.progress = 1;
+			}
+		},
+
+		/**
+		 * 文件上传成功
+		 * @param {object} fileInfo
+		 * @deprecate 这个函数会被执行多次
+		 */
+		onFileUploadComplete: function(fileInfo){
+			if (this.bUploadStatus != this.STATUS.UPLOAD_DONE){
+				return;
+			}
+
+			var allDone = true;
+			for(var i=0; i<this.fileArr.length;i++){
+				if(this.fileArr[i].id == fileInfo.id){
+					if (fileInfo.data)
+					{
+						var data = eval('(' + fileInfo.data + ')');
+						if (data && data.ret != 0){
+							this.bUploadStatus = this.STATUS.TRANSFORM_ERR;
+							if (data.msg){
+								QZBlog.Util.showMsgbox(data.msg,  5, QZBlog.Util.MSG_LIFTTIME.HIGH);
+							}
+							this.showPanel(3);
+							if (data.msg == "请先登录"){
+								QZBlog.Util.showLoginBox("ownerOperation", null, true);
+							}
+						} else if (data && data.ret == 0){
+							this.fileArr[i].uploadComplete = true;
+							PAGE_CACHE.add('BlogDocHtml', data.data, 10000000);
+						} else {
+							if (data && data.msg){
+								QZBlog.Util.showMsgbox(data.msg,  5, QZBlog.Util.MSG_LIFTTIME.HIGH);
+							}
+							this.bUploadStatus = this.STATUS.TRANSFORM_ERR;
+							this.showPanel(3);
+						}
+					}
+				}
+
+				if(!this.fileArr[i].uploadComplete){
+					allDone = false;
+				}
+			}
+			if (allDone){
+				this.bUploadStatus = this.STATUS.TRANSFORM_DONE;
+				this.showPanel(2);
+				QZBlog.Util.Statistic.sendPV('wordUploadSuc','blog.qzone.qq.com');
+				QZONE.FP.getCurrentAppWindow().PageScheduler.extraParam["source"] = "20120301";
+				var uin = QZBlog.Logic.SpaceHostInfo.getLoginUin();
+				if (uin != this.loginUin){
+					if (uin > 10000) {
+						PAGE_CACHE.clean('BlogDocHtml');
+						PAGE_CACHE.clean('BlogDocName');
+						QZBlog.Util.showMsgbox("您登陆了多个空间，请退出其他空间刷新空间。",  5, QZBlog.Util.MSG_LIFTTIME.HIGH);
+						this.closeWindow(100);
+					}
+				} else {
+					//当前仅支持单文件传输
+					this.closeWindow(1000);
+				}
+			}
+		},
+
+		/**
+		 * 发送数据到编辑页面
+		 * @param {object}
+		 */
+		closeWindow: function(timeout){
+			setTimeout(function(){
+				QZBlog.Util.closePopup();
+			}, timeout);
+		},
+
+		/**
+		 * 命令flash立即执行上传
+		 */
+		startUpload: function(){
+			this.progress = 0;
+			this.showPanel(1);
+			QZBlog.Util.Statistic.sendPV('startWordUpload','blog.qzone.qq.com');
+
+			var extraParams = {filename: 'file', uin: this.loginUin, cuin: QZFL.cookie.get("uin"), skey: QZFL.cookie.get("skey")};
+			for(var i=0; i<this.fileArr.length; i++){
+				if(!this.fileArr[i].uploadComplete){
+					if (this.fileArr[i].id != 0){
+						this.fileArr[i].id = 0;
+					}
+					this.flashObj.upload(this.fileArr[i].id, this.uploadURL, extraParams);
+					PAGE_CACHE.add('BlogDocName', this.fileArr[i].fileName, 10000000);
+				}
+			}
+		},
+
+		/**
+		 * 上传错误
+		 * @param {string} ex
+		 */
+		onFileUploadError: function(ex){
+			if (this.bUploadStatus == this.STATUS.UPLOAD_DONE && this.intervalID != null){
+				clearInterval(this.intervalID);
+				this.intervalID = null;
+			}
+			this.bUploadStatus = this.STATUS.FILE_SELECTED;
+
+			if (ex && ex.msg && ex.msg == 'io_error'){
+				QZBlog.Util.showMsgbox("上传文件失败：文件不存在或者网络错误", 2, QZBlog.Util.MSG_LIFTTIME.MIDDLE);
+				}else if (ex && ex.msg && ex.msg == 'security_error'){
+				QZBlog.Util.showMsgbox("上传文件失败，请稍后重试", 2, QZBlog.Util.MSG_LIFTTIME.MIDDLE);
+				}else{
+				QZBlog.Util.showMsgbox("上传文件失败，请稍后重试", 2, QZBlog.Util.MSG_LIFTTIME.MIDDLE);
+			}
+
+			if (!!$('upload_btn')){
+				QZFL.css.removeClassName($('upload_btn'), 'bt_tip_forbid');
+				QZFL.css.addClassName($('upload_btn'), 'bt_tip_hit');
+			}
+			if (!!$("progress-status")){
+				$("progress-status").innerHTML = "文件上传中···";
+			}
+			this.showPanel(0);
+		},
+
+		/**
+		 * 绑定页面事件
+		 */
+		bindPageEvent: function(){
+			var _this = this;
+			document.body.onunload = document.body.onbeforeunload = window.onbeforeunload = window.onunload = this.setRemove;
+
+			//上传按钮
+			QZFL.event.addEvent($('upload_btn'), 'click', function(){
+				if(!_this.flashObj){
+					QZBlog.Util.showMsgbox("上传控件正在初始化中，请确保您的浏览器是否已经启用flash支持...", 3, QZBlog.Util.MSG_LIFTTIME.MIDDLE);
+				} else if(_this.bUploadStatus == _this.STATUS.INIT){
+					QZBlog.Util.showMsgbox("请选择您要上传的文件", 2, QZBlog.Util.MSG_LIFTTIME.MIDDLE);
+				} else if(_this.bUploadStatus == _this.STATUS.FILE_SELECTED){
+					if (!!$('upload_btn')){
+						QZFL.css.removeClassName($('upload_btn'), 'bt_tip_hit');
+						QZFL.css.addClassName($('upload_btn'), 'bt_tip_forbid');
+					}
+					_this.bUploadStatus = _this.STATUS.UPLOADING;
+					_this.startUpload();
+				} else {
+					//出错
+				}
+				QZFL.event.preventDefault();
+				return false;
+			});
+
+			//重试
+			QZFL.event.addEvent($('retry-btn'), 'click', function(){
+				if (!!$("progress-status")){
+					$("progress-status").innerHTML = "文件上传中···";
+				}
+				_this.showPanel(1);
+				_this.bUploadStatus =  _this.STATUS.FILE_SELECTED;
+				QZFL.event.preventDefault();
+				_this.startUpload();
+				return false;
+			});
+
+			//关闭
+			QZFL.event.addEvent($('close-btn'), 'click', function(){
+				if (_this.bUploadStatus == _this.STATUS.UPLOADING || _this.bUploadStatus == _this.STATUS.UPLOAD_DONE){
+					var msg = (_this.bUploadStatus == _this.STATUS.UPLOADING ? '您正在上传文件，是否取消当前上传操作？' : '您的文件正在转换中，是否取消？');
+					if (confirm(msg)){
+						_this.closeWindow(100);
+					}
+					}else{
+					_this.closeWindow(100);
+				}
+				return false;
+			});
+		},
+
+		/**
+		 * 显示各种不同的面板
+		 * @param {integer} status 0: 选择文件, 1：上传中，2：上传完成，3：上传出错
+		 */
+		showPanel: function(status){
+			$('select_file_panel').style.display = !status ? '' : 'none';
+			$('uploading_panel').style.display = status == 1 ? '' : 'none';
+			$('upload_complete_panel').style.display = status == 2 ? '' : 'none';
+			$('upload_error_panel').style.display = status == 3 ? '' : 'none';
+
+			if (status == 2 || status == 3){
+				if (this.intervalID != null){
+					clearInterval(this.intervalID);
+					this.intervalID = null;
+				}
+				if (!!this.progressTimer){
+					clearTimeout(this.progressTimer);
+					this.progressTimer = null;
+				}
+			}
+
+			//非选择上传时，隐藏flash按钮
+			QZFL.dom.setStyle($('flash-upload_btn'), (status == 0 ? {width:77, height:24} : {width:1, height:1}));
+		},
+
+		setRemove: function (){
+			var f = document.getElementById('simpleFileUploader');
+			try{
+				if(f){
+					f.removeNode(true);
+				}
+			}catch(e){}
+			window.__flash__removeCallback = function(instance,name){
+				try{
+					if(instance != null)
+					instance[name] = null;
+				}catch(e){}
+			};
+		}
+	};
+	WordUploader.init();
+})();
+</script>
+    </body>
+</html>

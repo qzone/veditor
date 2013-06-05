@@ -1,0 +1,47 @@
+<project name="QZMinClass" default="clean-all" basedir=".">
+   <target name="clean">
+        <delete dir="build"/>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="build/classes"/>
+        <javac 
+         srcdir="src" destdir="build/classes"
+         classpath="./classes/js.jar"
+        >
+            <classpath>
+                <pathelement location="./classes/js.jar"/>
+                <pathelement location="./classes/shrinksafe.jar"/>
+            	<pathelement location="./classes/compressor.jar"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="jar">
+        <mkdir dir="build/jar"/>
+    	<mkdir dir="build/jar/java/classes"/>
+        <copy todir="build/jar/java/classes">
+            <fileset dir="classes" includes="*.jar"/>
+        </copy>
+        <jar destfile="build/jar/jsrun.jar" basedir="build/classes">
+            <manifest>
+               <attribute name="Main-Class" value="com.qzfl.compress.JsRun"/>
+               <attribute name="Class-Path" value="./java/classes/js.jar ./java/classes/shrinksafe.jar ./java/classes/compressor.jar "/>
+            </manifest>
+        </jar>
+    </target>
+    
+    <target name="debugjar">
+        <mkdir dir="build/jar"/>
+        <jar destfile="build/jar/jsdebug.jar" basedir="build/classes">
+            <manifest>
+               <attribute name="Main-Class" value="com.qzfl.compress.JsDebugRun"/>
+               <attribute name="Class-Path" value="./java/classes/js.jar ./java/classes/shrinksafe.jar ./java/classes/compressor.jar "/>
+           </manifest>
+        </jar>
+    </target>
+
+    <target name="clean-build" depends="clean,compile,jar"/>
+    <target name="clean-debug" depends="clean,compile,debugjar"/>
+	<target name="clean-all" depends="clean,compile,jar"/>
+</project>
