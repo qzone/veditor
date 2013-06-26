@@ -1,0 +1,390 @@
+html,body,p,ul,li {margin:0; padding:0;}
+.hidden {display:none; visibility:hidden;}
+.veHtmlEditor {border:1px solid #ccc; border-radius:0px !important; +margin-left:-20px; _margin-left:0px;}
+.veToolbar {overflow:hidden; margin:5px 2px 0 2px; float:left; height:25px;}
+.veToolbar a, .veToolbar a:hover, .veToolbar a:active,
+.veList a, .veList a:hover, .veList a:active {text-decoration:none;color:#555}	/*** 按钮颜色不跟随主题  ****/
+.veToolbarContainer {background:url(../img/toolbarbg.png) repeat-x; _overflow:hidden; _zoom:1}
+.veToolbarAdvMode {background:url(../img/advtoolbarbg.png) repeat-x}
+.veStatusbarContainer {padding:2px 5px}
+
+/** 菜单caption **/
+.veList {overflow:hidden;display:block; overflow:hidden; float:left; font-size:12px; z-index:13; width:82px;}
+.veList a {text-decoration:none;padding:0 5px; display:block; overflow:hidden; clear:both;}
+.veList.veControlDisabled a {color:#ccc}
+.veList .veList_downicon{display:block; width:22px; height:22px; background:url(../img/bg.png) no-repeat -194px 0; float:left; overflow:hidden;}
+.veList .veList_downicon a {width:10px; height:22px}
+.veList .veList_current {width:60px; float:left; height:22px; overflow:hidden; line-height:22px; background:url("../img/bg.png") no-repeat -81px 0;}
+.veList_active .veList_current {background-position:-81px -44px}
+.veList_over .veList_downicon {background-position: -194px -22px; overflow:hidden;}
+.veList_over .veList_current {}
+.veList_active .veList_downicon {background-position: -194px -44px}
+
+/** 菜单list **/
+.veList_list {position:absolute; border:1px solid #cccccc; border-radius:0 0 3px 3px; box-shadow:1px 1px 2px #ccc; border-top:none; background:url("../img/gray_line.png") no-repeat 80px 0 #fafafa; margin:0 0 0 1px; padding:1px 0}
+.veList_list a {padding:5px 0;}
+.veList_list a.veListTitle {padding:5px 10px; font-weight:bold; background-color:#eeeeee;cursor:default;}
+.veList_list .veList_item_con .sel_icon {visibility:hidden; font-size:14px; line-height:20px; float:left; display:block; width:14px; text-align:center; overflow:hidden;}
+.veList_list .current .sel_icon {visibility:visible}
+.veList_list .veList_item_con .item_cont {margin:0 5px;}
+.veList_list .list_left {width:20px; height:100%;}
+.veList_list .veList_item_over a {background-color:#eeeeee;}
+
+.veListFontName, .veListFontSize {margin:0 2px;}
+.veList_FontSize_list {top:27px; left:105px; width:155px;}
+.veList_FontName_list {top:27px; left:0px; width:120px;}
+
+.veList_disabled .veList .veList_current {background-position:-81px -67px}
+.veList_disabled .veList_current a {color:#aaa; cursor:default;}
+.veList_disabled .veList_downicon {background-position:-194px -67px}
+
+/** button原型 **/
+.veButton {display:block; float:left; cursor:pointer; float:left; width:27px; height:22px; margin-right:2px; overflow:hidden; zoom:1}
+.veButton span {display:block; background-image:url(../img/bg.png); background-repeat:no-repeat; width:27px; height:22px;}
+div .veButton_disabled {cursor:default;}
+
+.veSave {background-position:0 0}
+.veButton_over .veSave {background-position:0 -22px}
+.veButton_disabled .veSave {background-position:0 -66px}
+
+.veButton_veSubmitBlog {width:81px; height:22px; margin-right:3px; cursor:pointer}
+.veButton .veSubmitBlog {width:81px; height:22px; font-size: 12px; line-height: 20px;color:white;text-align: center;background:url("../img/submit_blog_btn_notext.png") no-repeat 0 0}
+.veButton_disabled .veSubmitBlog {background-position:0 -25px; color:#bbb}
+
+.veUndo {background-position:-27px 0}
+.veButton_over .veUndo {background-position:-27px -22px}
+.veButton_disabled .veUndo {background-position:-27px -66px}
+
+.veRedo {background-position:-54px 0}
+.veButton_over .veRedo {background-position:-54px -22px}
+.veButton_disabled .veRedo {background-position:-54px -66px}
+
+.veBold {background-position: -580px 0;}
+.veButton_veBold {margin-right:0}
+.veButton_over .veBold {background-position: -580px -22px;}
+.veButton_active .veBold {background-position: -580px -44px;}
+.veButton_disabled .veBold {background-position: -580px -66px;}
+
+.veItalic {background-position: -608px 0;}
+.veButton_veItalic {margin-right:0}
+.veButton_over .veItalic {background-position: -608px -22px;}
+.veButton_active .veItalic {background-position: -608px -44px;}
+.veButton_disabled .veItalic {background-position: -608px -66px;}
+
+.veGlowFont {background-position: -216px 0;}
+.veButton_over .veGlowFont {background-position:-216px -22px}
+.veButton_disabled .veGlowFont {background-position:-216px -66px}
+
+.veUnderline {background-position: -636px 0}
+.veButton .veUnderline, .veButton_veUnderline {width:29px}
+.veButton_over .veUnderline {background-position: -636px -22px; width:29px;}
+.veButton_active .veUnderline {background-position: -636px -44px; width:29px;}
+.veButton_disabled .veUnderline {background-position: -636px -66px;}
+
+.veFontStyleToolbar {margin-left:0; width:324px; /** fix only take effect in chrome **/}
+
+.veJustifyLeft {background-position: -243px 0;}
+.veButton_veJustifyLeft {margin-right:0;}
+.veButton_over .veJustifyLeft {background-position: -243px -22px;}
+.veButton_active .veJustifyLeft {background-position: -243px -44px;}
+.veButton_disabled .veJustifyLeft {background-position: -243px -66px;}
+
+.veJustifyCenter {background-position: -270px 0;}
+.veButton_veJustifyCenter {margin-right:0;}
+.veButton_over .veJustifyCenter {background-position: -270px -22px;}
+.veButton_active .veJustifyCenter {background-position: -270px -44px;}
+.veButton_disabled .veJustifyCenter {background-position: -270px -66px;}
+
+.veJustifyRight {background-position: -297px 0;}
+.veButton_veJustifyRight {margin-right:0;}
+.veButton_over .veJustifyRight {background-position: -297px -22px;}
+.veButton_active .veJustifyRight {background-position: -297px -44px;}
+.veButton_disabled .veJustifyRight {background-position: -297px -66px;}
+
+.veButton_veJustifyRight {width:28px;}
+.veButton_veJustifyRight .veJustifyRight {width:28px}
+
+.veJustifyFull {background-position: -324px 0}
+.veButton .veJustifyFull, .veButton_veJustifyFull {width:29px;}
+.veButton_over .veJustifyFull {background-position: -324px -22px}
+.veButton_active .veJustifyFull {background-position: -324px -44px;}
+.veButton_disabled .veJustifyFull {background-position: -324px -66px;}
+
+.veButton_veComposingMiddle {margin-left:1px}
+.veComposingMiddle {background-position:-632px -121px}
+.veButton_over .veComposingMiddle {background-position: -632px -143px}
+.veButton_active .veComposingMiddle {background-position: -632px -143px;}
+.veButton_disabled .veComposingMiddle {background-position: -632px -165px;}
+
+.veHtml {background-position:-828px 0;}
+.veButton .veHtml, .veButton_veHtml {width:47px;}
+.veButton_over .veHtml {background-position: -828px -22px;}
+.veButton_active .veHtml {background-position: -828px -44px}
+.veButton_disabled .veHtml {background-position: -828px -66px}
+
+span.veButton_veCode {width:17px;}
+.veCode {background-position:-659px -121px;}
+.veButton .veCode, .veButton_veCode {width:47px;}
+.veButton_over .veCode {background-position: -659px -143px;}
+.veButton_active .veCode {background-position: -659px -165px}
+.veButton_disabled .veCode {background-position: -659px -187px}
+
+.veFullScreen {background-position:-412px -90px;}
+.veFullScreen b {display:none}
+.veButton .veFullScreen, .veButton_veFullScreen {}
+.veButton_over .veFullScreen {background-position: -412px -113px;}
+.veButton_active .veFullScreen {background-position: -412px -90px}
+.veButton_disabled .veFullScreen {background-position: -412px -136px}
+
+/** 全屏+普通 **/
+.veToNormalScreen .veFullScreen {background-position: -352px -113px;}
+.veToNormalScreen.veButton_active .veFullScreen {background-position: -352px -90px}
+.veToNormalScreen.veButton_disabled .veFullScreen {background-position: -352px -136px}
+
+.veOrderedList {background-position: -722px 0}
+.veButton_veOrderedList {margin-right:0}
+.veButton .veOrderedList, .veButton_veOrderedList {width:27px;}
+.veButton_over .veOrderedList {background-position: -722px -22px;}
+.veButton_active .veOrderedList {background-position: -722px -44px}
+.veButton_disabled .veOrderedList {background-position: -722px -66px}
+
+.veUnorderedList {background-position: -749px 0}
+.veButton .veUnorderedList, .veButton_veUnorderedList {width:26px;}
+.veButton_over .veUnorderedList {background-position: -749px -22px;}
+.veButton_active .veUnorderedList {background-position: -749px -44px}
+.veButton_disabled .veUnorderedList {background-position: -749px -66px}
+
+.veTabLeft {background-position: -775px 0}
+.veButton_veTabLeft {width:27px;margin-right:0}
+.veButton .veTabLeft {width:27px;}
+.veButton_over .veTabLeft {background-position: -775px -22px;}
+.veButton_disabled .veTabLeft {background-position: -775px -66px}
+
+.veTabRight {background-position: -802px 0; width:26px;}
+.veButton .veTabRight, .veButton_veTabRight {width:26px;}
+.veButton_over .veTabRight {background-position: -802px -22px;}
+.veButton_disabled .veTabRight {background-position: -802px -66px}
+
+.veButton_veForeColor {width:34px; background:url("../img/bg.png") no-repeat -474px -90px;}
+.veButton_veForeColor .veColorDropBtn_main .veColorDropBtn_color {width:15px; height:3px; margin:15px 0 0 5px}
+.veColorDropBtn_hover_main {background-position:-474px -113px}
+.veColorDropBtn_hover_drop {background-position:-474px -136px}
+.veButton_veForeColor span {background:none; font-size:0px;}
+.veButton_veForeColor.veButton_disabled {background-position: -474px -90px}
+.veButton_veForeColor .veColorDropBtn_main {width:21px; float:left}
+.veButton_veForeColor .veColorDropBtn_drop {width:11px; float:right}
+
+.veBackColor {background-position: -693px 0}
+.veButton .veBackColor, .veButton_veBackColor {width:29px;}
+.veButton_over .veBackColor {background-position: -693px -22px;}
+.veButton_disabled .veBackColor {background-position: -693px -66px;}
+
+.veInsertImage {background-position: -380px 0}
+.veButton .veInsertImage,.veButton_veInsertImage {width:27px;}
+.veButton_over .veInsertImage {background-position: -380px -22px}
+.veButton_disabled .veInsertImage {background-position: -380px -66px}
+
+.veLink {background-position: -461px 0;}
+.veButton .veLink, .veButton_veLink {width:27px;}
+.veButton_over .veLink {background-position: -461px -22px}
+.veButton_disabled .veLink {background-position: -461px -66px}
+
+.veEmotion {background-position: -353px 0;}
+.veButton .veEmotion, .veButton_veEmotion {width:27px;}
+.veButton_over .veEmotion {background-position: -353px -22px}
+.veButton_disabled .veEmotion {background-position: -353px -66px}
+
+/*上传文档 */
+.veUploadWord{background-position:-605px -121px;}
+.veButton .veUploadWord{}
+.veButton_over .veUploadWord {background-position: -605px -143px}
+.veButton_disabled .veUploadWord {background-position: -605px -187px}
+
+.veInsertQQShowBubble {background-position: -1032px 0}
+.veButton .veInsertQQShowBubble, .veButton_veInsertQQShowBubble {width:27px;}
+.veButton_over .veInsertQQShowBubble {background-position: -1032px -22px;}
+.veButton_disabled .veInsertQQShowBubble {background-position: -1032px -66px;}
+
+.veInsertMusic {background-position: -434px 0}
+.veButton .veInsertMusic, .veButton_veInsertMusic {width:27px;}
+.veButton_over .veInsertMusic {background-position:-434px -22px}
+.veButton_disabled .veInsertMusic {background-position: -434px -66px;}
+
+.veScreen {background-position: -1113px 0}
+.veButton .veScreen, .veButton_veScreen {width:27px;}
+.veButton_over .veScreen {background-position:-1113px -22px}
+.veButton_disabled .veScreen {background-position:-1113px -66px}
+
+.veInsertVideo {background-position: -407px 0}
+.veButton .veInsertVideo, .veButton_veInsertVideo {width:27px;}
+.veButton_over .veInsertVideo {background-position:-407px -22px}
+.veButton_disabled .veInsertVideo {background-position:-407px -66px}
+
+.veInsertFlash {background-position:-1059px 0}
+.veButton .veInsertFlash, .veButton_veInsertFlash {width:27px;}
+.veButton_over .veInsertFlash {background-position:-1059px -22px}
+.veButton_disabled .veInsertFlash {background-position:-1059px -66px}
+
+.vePin {background-position: -1103px 0;}
+.veButton .vePin, .veButton_vePin {width:27px;}
+.veButton_over .vePin {background-position: -1103px -22px;}
+
+.veHelp {background-position: -1002px -69px; width:16px}
+.veButton .veHelp, .veButton_veHelp {width:16px}
+
+.veRemoveFormat {background-position:-488px 0}
+.veButton .veRemoveFormat, .veButton_veRemoveFormat {width:23px}
+.veButton_over .veRemoveFormat {background-position:-488px -22px}
+.veButton_disabled .veRemoveFormat {background-position:-488px -66px}
+
+.veButton_veToolbarSwitcher {background:none; width:auto; line-height:20px; height:20px; color:#666; width:74px; text-indent:7px;}
+.veButton_veToolbarSwitcher .veIcon {background:none; width:70px;}
+.veButton_veToolbarSwitcher:hover {text-decoration:none;}
+.veButton_veToolbarSwitcher b {display:inline-block; width:10px; height:11px; margin-left:3px; _margin-top:3px; background:url("../img/bg.png") no-repeat -1005px -3px}
+.veButton_over.veButton_veToolbarSwitcher {background:url("../img/bg.png") -580px -93px}
+.veButton_active .veButton_veToolbarSwitcher b {background-position:-1005px -46px}
+
+/** 为了IE6 **/
+.veExtraToolbar .veButton_disabled:hover,
+.veExtraToolbar .veButton_disabled:active,
+.veExtraToolbar .veButton_disabled {color:#aaa}
+
+/** 高级 + 全屏 **/
+body .veToolbarAdvMode .veToNormalScreen {margin-left:5px; height:50px; width:50px; text-decoration:none;}
+body .veToolbarAdvMode .veToNormalScreen .veFullScreen {height:27px; width:31px; background-position:-380px -90px; margin:4px auto 0 auto}
+body .veToolbarAdvMode .veToNormalScreen .veFullScreen b {display:block; width:50px; padding:29px 0 0 0; position:absolute; margin-left:-7px; font-weight: normal}
+body .veToolbarAdvMode .veButton_over.veToNormalScreen .veFullScreen {background-position: -380px -118px}
+body .veToolbarAdvMode .veToNormalScreen.veButton_active .veFullScreen {background-position: -380px -118px}
+body .veToolbarAdvMode .veToNormalScreen.veButton_disabled .veFullScreen {background-position: -380px -146px}
+
+/** 全屏+高级边缘border fix **/
+.veditor_fullscreen .veToolbarContainer, .veditor_fullscreen .veToolbarAdvMode {border:none}
+.veditor_fullscreen .veToolbarAdvMode .veExtraToolbar {width:140px}
+
+/*.test_con .veIframeConContainer {margin:0 auto;background:#cccccc;}*/
+.mailTitleContainer {width:100%; padding:10px 0; height:30px; text-align:center;}
+.mailTitleContainer input {width: 400px; border: none; width:80%; line-height: 30px; font-weight:700; margin:0 auto; padding: 5px 10px; font-size:20px; background-color:transparent;}
+
+.popupdialogcon {background-color:white; border:1px solid gray;}
+.popupdialogcon .iframe_con {width:100%; margin:0 auto;}
+.popupdialogcon  h3{background:url(../img/pupop_bg.png) repeat-x;margin:0; padding:0; height:20px;text-align:left; font-weight:700;color:black; height:28px; z-index:1;}
+.popupdialogcon  h3 .txt_con {float:left; padding:2px 5px;}
+.popupdialogcon  h3 .close_icon {background:url(../img/pupop_bg.png) no-repeat 0 -30px;display:block; float:right; margin:0 5px;  width: 34px; height:19px; text-decoration:none; overflow:hidden; font-size:12px;}
+.popupdialogcon .ve_resize {position:absolute; height:5px; width:5px; display:block; background-color:black;background:transparent; z-index:0;}
+.popupdialogcon .resizeN {width:100%;left:0; top:0; cursor:n-resize;}
+.popupdialogcon .resizeS {width:100%; left:0; bottom:0;cursor:s-resize;}
+.popupdialogcon .resizeW {height:100%;left:0; top:0;cursor:w-resize; }
+.popupdialogcon .resizeE {height:100%; right:0;top:0;cursor:e-resize;}
+.popupdialogcon .resizeNW {left:0; top:0;cursor:nw-resize; z-index:1;}
+.popupdialogcon .resizeNE {right:0;top:0;cursor:ne-resize;z-index:1;}
+.popupdialogcon .resizeSW {left:0;bottom:0;cursor:sw-resize;z-index:1;}
+.popupdialogcon .resizeSE {right:0; bottom:0;cursor:se-resize;z-index:1;}
+
+.simplepopupcon {background-color:white; color:black; border:1px solid gray; position:absolute; box-shadow:0 0 2px #06C; border-radius:2px; z-index: 12}
+.simplepopupcon .close_con {width: 14px; height: 14px; float:right; font-size:12px; margin:3px 1px 0;}
+.simplepopupcon .close_icon {color:#345; text-decoration:none; font-weight: bold}
+
+/**
+ * 插入链接面板
+ */
+#ed-insert-link-panel {padding:10px;}
+#ed-insert-link-panel strong {padding-bottom:5px; display:inline-block}
+#ed-insert-link-panel #link-val {width:200px}
+
+/**
+ * 插入字符
+ */
+#ed-insert-symbol-panel {padding:10px 5px 10px 10px}
+#ed-insert-symbol-panel h4 {font-weight:normal; color:gray}
+#ed-insert-symbol-panel h4 span {cursor: pointer;}
+#ed-insert-symbol-panel h4 span.cur {font-weight:bold; color:#333}
+#ed-insert-symbol-panel-all span {display:inline-block; font-size:16px; width:17px; height:17px; line-height:16px; border-radius:3px; padding:1px; text-align:center; cursor: pointer}
+#ed-insert-symbol-panel-all span:hover {background-color:#ddd;}
+#ed-insert-symbol-panel-all {height:193px; padding:0 0 10px 0; overflow-y:auto;}
+#ed-insert-symbol-panel-all p {padding:10px 0 5px; color:gray;}
+
+#ed-insert-symbol-panel-table {padding:10px}
+#ed-insert-symbol-panel-tbody {overflow:hidden; margin-bottom:10px;}
+#ed-insert-symbol-panel-table .cell {display:block; width:16px; height: 16px; float:left; border:1px solid #ccc; margin:1px; cursor: pointer;}
+#ed-insert-symbol-panel-table span.cell-hightlight {border-color:red}
+#insert-table-btn {float:right;}
+
+
+
+/** 粘贴富文本面板 **/
+#ed-paste-richtext {padding:10px}
+#ed-paste-richtext  strong {padding-bottom:5px; display:inline-block}
+#ed-paste-iframe {border:1px solid #ddd}
+#ed-paste-richtext iframe {display:block; width:326px; height:140px; border:none}
+
+/** 图文混排工具 **/
+.pic_tips {position:absolute; z-index:2;}
+.pic_tips li {list-style:none}
+.none{position:absolute;top:-999em}
+.pic_function,.main_btn,.dropdown_functions{;-moz-border-radius:2px;-webkit-border-radius: 2px;border-radius: 2px;background-color:#e5e5e5;}
+.pic_function
+{background-image: -moz-linear-gradient(top, #f2f1f1, #e5e5e5); /* FF3.6 */
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0, #f2f1f1),color-stop(1, #e5e5e5)); /* Saf4+, Chrome */
+  background-image: -webkit-linear-gradient(#f2f1f1, #999999); /* Chrome 10+, Saf6 */
+  background-image: linear-gradient(top, #f2f1f1, #e5e5e5);
+}
+.pic_function{border:1px solid #999;background-color:#f2f1f1;height:21px;position:relative;float:left;  font-size:12px; padding:4px 0 4px 4px}
+.pic_function a {text-decoration:none}
+.pic_function a:hover{cursor:pointer;text-decoration:none}
+.dropdown_functions a:hover{background-color:#e6e6e6}
+.pic_function .father_button{float:Left;margin-right:4px;_display:inline;}
+.pic_function .father_button .dropdown_functions{position:absolute;top:27px;z-index:0;_width:100px}
+.dis_none,.father_button .dropdown_functions{display:none}
+.pic_function .current .dropdown_functions{display:block; box-shadow:1px 1px 1px #eee;}
+.pic_function .icon_sprite{display:block;background:url(../img/icon_pic_edit.gif) no-repeat}
+.icon_pic_position{margin-top:3px;margin-left:4px}
+.icon_pic_size{margin-top:2px;margin-left:3px}
+.icon_pic_link{margin-top:6px;margin-left:2px}
+.pic_function .father_button .main_btn{width:21px;height:20px;background-color:#fff;border:1px solid #bfbfbf;display:block;z-index:1;position:relative}
+.pic_function .father_button.current .main_btn{border-bottom:none;height:23px}
+.father_button .dropdown_functions .text_intro{font-style:normal;margin-left:5px}
+.dropdown_functions{border:1px solid #bfbfbf;background:#fff;padding:1px}
+.dropdown_functions li{border:1px solid #fff}
+.pic_link_item{min-width:280px; width:280px; padding:10px;}
+.pic_function .father_button .pic_link_item {min-width:360px; width:360px;}
+.pic_position .dropdown_functions,.pic_position .dropdown_functions a{min-width:70px;_width:70px;width:auto}
+.pic_size .dropdown_functions,
+.pic_size .dropdown_functions a{min-width:50px;_width:50px;width:auto;}
+.pic_size .dropdown_functions a{height:12px;line-height:12px;}
+.pic_link_item .url{width:200px;margin-left:5px;font-family:arial, sans-serif;border:1px solid #bfbfbf;padding:2px}
+.dropdown_functions .icon_sprite{float:left}
+.dropdown_functions li a{display:block;position:relative;cursor:pointer;padding:3px 4px;height:14px;line-height:14px;color:#4d4d4d}
+.dropdown_functions li a:link,.dropdown_functions li a:visited{background-color:#fff;color:#4d4d4d}
+.dropdown_functions a:hover,.dropdown_functions a:active{background-color:#e6e6e6;cursor:pointer;color:#4d4d4d}
+.pic_position .icon_sprite{width:12px;height:13px}
+.pic_function .icon_pic_position,.pic_function .icon_pic_left{background-position:0 -6px;width:13px;height:14px}
+.pic_function .icon_pic_center{background-position:0 -26px}
+.pic_function .icon_pic_right{background-position:0 -46px}
+.pic_function .icon_pic_left_round{background-position:0 -65px}
+.pic_function .icon_pic_right_round{background-position:0 -84px}
+.pic_function .icon_pic_reset{background-position:0 -103px;}
+.pic_size .icon_sprite{width:14px;height:14px}
+.pic_function .icon_pic_size{background-position:-29px 0;width:16px;height:17px}
+.pic_function .icon_size_default{background-position:-29px -26px}
+.pic_function .icon_size_smaller{background-position:-29px -46px}
+.pic_function .icon_size_bigger{background-position:-29px -65px}
+.pic_function .icon_size_full{background-position:-29px -84px}
+.pic_function .icon_pic_link{background-position:-57px -4px;width:17px;height:9px}
+
+/** 视频tip **/
+div.ve_video_info_tip {width:250px; height:50px; border:1px solid #ddd; padding:10px 5px; position:absolute; background-color:white; color:#345}
+div.ve_video_info_tip input {border:1px solid #aaa; border-right-color:#ddd; border-bottom-color:#ddd; width:240px;}
+
+/** 插入表格 **/
+#ed-insert-table-panel strong {padding:7px 0 0 15px; display:block}
+#vetable-size {display:block; padding:3px 0 0 14px}
+.vetable_cell_container {display:block; overflow:hidden; zoom:1; padding:5px 7px 0 14px}
+.vetable_cell {display:block; width:10px; height:10px; border:1px solid #ddd; float:left; margin:1px;}
+.vetable_cell_selected {background-color:#ddd}
+
+/** 黄钻字体 **/
+.icon_vip_yl_s {width:15px; height:12px; background:url(/ac/qzone_v5/client/vip.png?max_age=19830211&d=1013165637) -18px -16px no-repeat;}
+
+
+/** 全屏 + soso 表情 **/
+.veditor_fullscreen #soso_exp_platform_box {margin-left:-310px}

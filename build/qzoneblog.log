@@ -1,0 +1,63 @@
+====== START ====== 
+[Merge Level]: 	merge 
+ 
+[Project]: 	qzone editor for profile.
+ 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/core.js     loaded... 3863 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/lang.js     loaded... 7612 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/adapter/qzfl.adapter.js     loaded... 19975 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/event.js     loaded... 3432 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/net.js     loaded... 4492 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/string.js     loaded... 1035 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editor.js     loaded... 38254 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editorcommands.js     loaded... 2576 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/range.js     loaded... 58615 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/plugin.js     loaded... 1299 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/dtd.js     loaded... 5947 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/view.js     loaded... 676 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/uicontrol.js     loaded... 4445 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/base.js     loaded... 321 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/container.js     loaded... 777 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/toolbar.js     loaded... 6661 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/button.js     loaded... 2391 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/listbox.js     loaded... 8834 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/simplepopup.js     loaded... 2395 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/view/def/view.js     loaded... 2349 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/linetag/plugin.js     loaded... 3230 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/save/plugin.js     loaded... 670 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/list/plugin.js     loaded... 20551 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/tab/plugin.js     loaded... 1618 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/history/plugin.js     loaded... 7629 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/font/plugin.js     loaded... 6508 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/textjustify/plugin.js     loaded... 7069 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonemedia/plugin.js     loaded... 2862 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/htmleditor/plugin.js     loaded... 5475 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/toolbarswitcher/plugin.js     loaded... 1996 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/link/plugin.js     loaded... 7647 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/color/plugin.js     loaded... 3468 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/xpaste/plugin.js     loaded... 14036 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/removeformat/plugin.js     loaded... 7991 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/sosoemotion/plugin.js     loaded... 2223 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzoneblogtoolbarpin/plugin.js     loaded... 10549 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonemention/plugin.js     loaded... 21470 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonefullscreen/plugin.js     loaded... 8191 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/imagetools/plugin.js     loaded... 10933 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonealbum/plugin.js     loaded... 0 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzoneflash/plugin.js     loaded... 7772 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzoneimage/plugin.js     loaded... 5026 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonemusic/plugin.js     loaded... 4353 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzoneqqshowbubble/plugin.js     loaded... 1496 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonevideo/plugin.js     loaded... 9938 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/glowfont/plugin.js     loaded... 3772 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonevipfont/plugin.js     loaded... 5889 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonevphoto/plugin.js     loaded... 4990 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/screenshot/plugin.js     loaded... 16345 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonesidealbum/plugin.js     loaded... 20205 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzoneblogsave/plugin.js     loaded... 585 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzoneimageas/plugin.js     loaded... 2259 byte. 
+
+merging target files... 
+target file size: 402747 byte. 
+====================================================== 
+ 
+done. 

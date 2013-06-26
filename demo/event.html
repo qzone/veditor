@@ -1,0 +1,63 @@
+<!DOCTYPE>
+<html>
+<head>
+	<title>事件监听</title>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+	<script type="text/javascript" src="../release/ve.standalone.js"></script>
+	<link rel="stylesheet" href="res/css.css">
+	<script src="res/help.js"></script>
+</head>
+<body>
+	<h1>事件监听</h1>
+	<div id="ed1"><!-- 容器 --></div>
+	<script type="text/javascript">
+        var editor = VEditor.create({
+			container: 'ed1',
+			height: 200,
+			plugins: 'history,save,htmleditor',  //指定需要加在的插件列表，以逗号分隔
+			buttons: 'html,save|undo,redo' //工具条按钮配置，逗号分隔按钮，竖线分组
+		});
+
+		var evList = ['onInit',
+				'onSelect',
+				'onKeyPress',
+				'onKeyDown',
+				'onKeyUp',
+				'onMouseOver',
+				'onMouseDown',
+				'onMouseUp',
+				'onClick',
+				'onBeforeExecCommand',
+				'onAfterExecCommand',
+				'onInitComplete',
+				'onSelectContent',
+				'onUIRendered',
+				'onBlur',
+				'onFocus',
+				'onBeforeOpenListBox',
+				'onBeforeGetContent',
+				'onGetContent',
+				'onBeforeSetContent',
+				'onSetContent',
+				'onAfterSetContent',
+				'onAfterClearContent',
+				'onPaste',
+				'onAfterPaste',
+				'onResize',
+				'onPluginsInited',
+				'onIframeLoaded',
+				'onAfterUpdateVERange',
+				'onAfterUpdateVERangeLazy',		//懒惰触发事件
+				'onNodeRemoved'];
+		for(var i=0, j=evList.length; i<j; i++){
+			(function(){
+				var ev = evList[i];
+				editor[ev].add(function(arg1){
+					log('[event] '+ev+arg1);
+					return arg1;
+				});
+			})();
+		}
+	</script>
+</body>
+</html>

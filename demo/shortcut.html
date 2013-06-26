@@ -1,0 +1,30 @@
+<!DOCTYPE>
+<html>
+<head>
+	<title>快捷键</title>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+	<script type="text/javascript" src="../release/ve.standalone.js"></script>
+	<link rel="stylesheet" href="res/css.css">
+	<script src="res/help.js"></script>
+</head>
+<body>
+	<h1>快捷键</h1>
+	<div id="ed1"><!-- 容器 --></div>
+	<script type="text/javascript">
+        var editor = VEditor.create({
+			container: 'ed1',
+			height: 200,
+			placeholder: '按ctrl+s试试',
+			plugins: 'history,save',  //指定需要加在的插件列表，以逗号分隔
+			buttons: 'save|undo,redo' //工具条按钮配置，逗号分隔按钮，竖线分组
+		});
+		editor.addShortcut('ctrl+k', function(){
+			log('ctrl+k 触发了');
+		});
+
+		editor.addShortcut('ctrl+s', function(){
+			log('虽然冲突，但是ctrl+s还是触发了');
+		});
+	</script>
+</body>
+</html>

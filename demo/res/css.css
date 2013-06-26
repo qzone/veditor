@@ -1,0 +1,13 @@
+* {margin:0; padding:0;}
+html body {width:500px; padding:10px 20px; font-family:Microsoft YaHei; font-size:14px;}
+h1 {font-size:22px; padding:10px; background-color:#eee; margin-bottom:20px;}
+h2 {font-size:18px; margin:10px 0; padding-top:10px; border-top:30px solid white; border-bottom:1px solid #ddd;}
+h3 {font-size:14px; margin-top:10px}
+.veStatusbarContainer {background-color:yellow; position:absolute; top:0 ;right:0}
+.veIframeContainer {border:1px solid gray; border-top:none;}
+.veToolbarContainer {border:1px solid gray; border-bottom-color:#ddd;}
+
+#log {color:orange; height:200px; overflow-y:scroll; position:absolute; top:400px; left:550px; width:600px; font-size:12px;}
+#log p {border-bottom:1px solid #eee;}
+
+#code {color:blue; border:1px dotted gray; padding:10px; position:absolute; top:20px; overflow:scroll; left:550px; font-size:12px; width:580px; height:350px;}

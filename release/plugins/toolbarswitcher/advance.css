@@ -1,0 +1,106 @@
+/** 高级模式 **/
+.veToolbarAdvMode {height:60px;}
+.veToolbarAdvMode .veToolbar {height:auto;}
+.veToolbarAdvMode .veFontStyleToolbar {width:auto;}
+.veToolbarAdvMode .veExtraToolbar {width:120px}
+
+.veToolbarAdvMode .veButton_veSave {width:35px; height:49px}
+.veToolbarAdvMode .veButton .veSave {width:35px; height:49px; background-position:-875px 0}
+.veToolbarAdvMode .veButton_disabled .veSave {background-position:-875px -49px;}
+.veToolbarAdvMode .veButton_over .veSave {background-position:-910px -49px}
+
+
+.veToolbarAdvMode .veButton_veSubmitBlog {width:81px; height:50px;}
+.veToolbarAdvMode .veButton .veSubmitBlog {width:81px; height:50px;font-size: 16px; line-height: 48px; text-align: center; background-position:-86px 0}
+.veToolbarAdvMode .veButton_disabled .veSubmitBlog {background-position:-86px -55px}
+
+.veToolbarAdvMode .veButton_veUndo {margin:0}
+.veToolbarAdvMode .veButton_veRedo {margin:27px 0 0 -27px}
+/*.veToolbarAdvMode .veButton_veRedo {margin:26px 0 0 -29px}**/
+
+.veToolbarAdvMode .veOperateToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px}
+.veToolbarAdvMode .veButton_veBold {margin:26px 0 0 -171px}
+.veToolbarAdvMode .veButton_veItalic {margin:26px 0 0 -144px}
+.veToolbarAdvMode .veButton_veUnderline {margin:26px 0 0 -117px}
+.veToolbarAdvMode .veButton_veForeColor {margin:26px 0 0 -84px}
+.veToolbarAdvMode .veButton_veBackColor {margin:26px 0 0 -53px}
+.veToolbarAdvMode .veButton_veItalic {margin:26px 0 0 -144px}
+.veToolbarAdvMode .veColorToolbar {margin:26px 0 0 -171px}
+
+/** ie, ie6 hack **/
+.veToolbarAdvMode .veButton_veGlowFont {margin:-22px 0 0 124px; _margin:-22px 0 0 63px;}
+
+/** hack for ff **/
+body:nth-of-type(1) .veToolbarAdvMode .veButton_veGlowFont {margin:4px 0 0 124px;}
+
+/** hack for ie9 **/
+body:nth-of-type(1) .veToolbarAdvMode .veButton_veGlowFont {margin:-22px 0 0 124px\9;}
+
+/** hack for chrome **/
+@media screen and (-webkit-min-device-pixel-ratio:0) {.veToolbarAdvMode .veButton_veGlowFont{margin:-22px 1px 1px 124px !important;}}
+
+.veToolbarAdvMode .veFontStyleToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px; width:172px}
+
+.veToolbarAdvMode .veButton_veOrderedList {margin:26px 0 0 -112px}
+.veToolbarAdvMode .veButton_veUnorderedList {margin:26px 0 0 -85px}
+.veToolbarAdvMode .veButton_veTabLeft {margin:26px 0 0 -55px}
+.veToolbarAdvMode .veButton_veTabRight {margin:26px 0 0 -28px}
+.veToolbarAdvMode .veJustifyToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px; width:112px}
+
+.veToolbarAdvMode .veButton_veEmotion {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veEmotion {width:35px; height:50px; background-position:0 -90px}
+.veToolbarAdvMode .veButton_over .veEmotion {background-position:0 -141px}
+.veToolbarAdvMode .veButton_disabled .veEmotion {background-position:0 -192px}
+
+.veToolbarAdvMode .veButton_veLink {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veLink {width:35px; height:50px; background-position:-140px -90px}
+.veToolbarAdvMode .veButton_over .veLink {background-position:-140px -141px}
+.veToolbarAdvMode .veButton_disabled .veLink {background-position:-140px -192px}
+
+.veToolbarAdvMode .veButton_veInsertVideo {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veInsertVideo {width:35px; height:50px; background-position:-70px -90px}
+.veToolbarAdvMode .veButton_over .veInsertVideo {background-position:-70px -141px}
+.veToolbarAdvMode .veButton_disabled .veInsertVideo {background-position:-70px -192px}
+
+.veToolbarAdvMode .veButton_veInsertFlash {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veInsertFlash {width:35px; height:50px; background-position:-245px -90px}
+.veToolbarAdvMode .veButton_over .veInsertFlash {background-position:-245px -141px}
+.veToolbarAdvMode .veButton_disabled .veInsertFlash {background-position:-245px -192px}
+
+.veToolbarAdvMode .veButton_veInsertMusic {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veInsertMusic {width:35px; height:50px; background-position:-105px -90px}
+.veToolbarAdvMode .veButton_over .veInsertMusic {background-position:-105px -141px}
+.veToolbarAdvMode .veButton_disabled .veInsertMusic {background-position:-105px -192px}
+
+.veToolbarAdvMode .veButton_veInsertQQShowBubble {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veInsertQQShowBubble {width:35px; height:50px; background-position:-175px -90px}
+.veToolbarAdvMode .veButton_over .veInsertQQShowBubble {background-position:-175px -141px}
+.veToolbarAdvMode .veButton_disabled .veInsertQQShowBubble {background-position:-175px -192px}
+
+.veToolbarAdvMode .veButton_veInsertImage {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veInsertImage {width:35px; height:50px; background-position:-35px -90px}
+.veToolbarAdvMode .veButton_over .veInsertImage {background-position:-35px -141px}
+.veToolbarAdvMode .veButton_disabled .veInsertImage {background-position:-35px -192px}
+
+.veToolbarAdvMode .veButton_veScreen {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veScreen {width:35px; height:50px; background-position:-280px -90px}
+.veToolbarAdvMode .veButton_over .veScreen {background-position:-280px -141px}
+.veToolbarAdvMode .veButton_disabled .veScreen {background-position:-280px -192px}
+
+/* 上传文档 */
+.veToolbarAdvMode .veButton_veUploadWord {width:35px; height:50px}
+.veToolbarAdvMode .veButton .veUploadWord {width:35px; height:50px; background-position:-315px -90px}
+.veToolbarAdvMode .veButton_over .veUploadWord {background-position:-315px -141px}
+.veToolbarAdvMode .veButton_disabled .veUploadWord {background-position:-315px -192px}
+
+.veToolbarAdvMode .veAdvToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px}
+
+.veToolbarAdvMode .veButton_veHtml {margin:26px 0 0 -50px}
+.veToolbarAdvMode .veButton_veCode {margin:26px 0 0 70px; position:absolute;}
+.veToolbarAdvMode .veButton_veRemoveFormat {margin:26px 0 0 -76px}
+.veToolbarAdvMode .veButton_veToolbarSwitcher{/*margin-left:-23px**/}
+.veToolbarAdvMode .veButton_veToolbarSwitcher b {background-position:-1005px -49px}
+.veToolbarAdvMode .veButton_vePasteRich {margin:6px 0 0 4px}
+
+/** 高级 + 普通 **/
+.veToolbarAdvMode .veButton_veFullScreen {margin-left:15px;}

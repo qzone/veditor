@@ -1,0 +1,34 @@
+====== START ====== 
+[Merge Level]: 	merge 
+ 
+[Project]: 	veditor standalone version
+ 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/core.js     loaded... 3863 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/lang.js     loaded... 7612 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/dom.js     loaded... 31214 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/selector.js     loaded... 29635 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/ua.js     loaded... 1812 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/event.js     loaded... 3432 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/net.js     loaded... 4492 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/string.js     loaded... 1035 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editor.js     loaded... 38254 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editorcommands.js     loaded... 2576 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/range.js     loaded... 58615 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/plugin.js     loaded... 1299 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/dtd.js     loaded... 5947 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/view.js     loaded... 676 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/uicontrol.js     loaded... 4445 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/base.js     loaded... 321 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/container.js     loaded... 777 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/toolbar.js     loaded... 6661 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/button.js     loaded... 2391 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/listbox.js     loaded... 8834 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/masklayer.js     loaded... 974 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/popup.js     loaded... 16135 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/simplepopup.js     loaded... 2395 byte. 
+
+merging target files... 
+target file size: 233418 byte. 
+====================================================== 
+ 
+done. 
