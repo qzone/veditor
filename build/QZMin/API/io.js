@@ -5,7 +5,7 @@
  */
 /**
  * File IO Class
- * 
+ *
  * @constructor
  * @classDescription File IO Class
  */
@@ -17,7 +17,7 @@ var IO = {
 
 	/**
 	 * read File Contents
-	 * 
+	 *
 	 * @param {string} filePath Path to file to open.
 	 * @param {string} content save contents to file
 	 * @param {boolean} append Open in append mode?
@@ -30,8 +30,28 @@ var IO = {
 	},
 
 	/**
+	 * 文件拷贝
+	 * @deprecated 该方法不支持目录自动创建
+	 * @param  {String} source
+	 * @param  {string} dest
+	 */
+	copyFile: function(source, dest){
+		var srcFile = new java.io.File(source);
+		var destFile = new java.io.File(dest);
+
+		var inStream = new java.io.FileInputStream(srcFile);
+		var outStream = new java.io.FileOutputStream(destFile);
+		var len=0, buff = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024);
+		while((len = inStream.read(buff)) > 0){
+			outStream.write(buff, 0, len) ;
+		}
+		inStream.close();
+		outStream.close();
+	},
+
+	/**
 	 * read File Contents
-	 * 
+	 *
 	 * @param {string} filePath Path to file to read.
 	 */
 	readFile : function(filePath) {
@@ -40,7 +60,7 @@ var IO = {
 
 	/**
 	 * open file to string
-	 * 
+	 *
 	 * @param {string} filePath Path to file to open.
 	 * @param {boolean} append Open in append mode?
 	 * @return {PrintWriter} return Print Writer
@@ -57,7 +77,7 @@ var IO = {
 
 	/**
 	 * set Class encoding
-	 * 
+	 *
 	 * @param {Object} encoding
 	 */
 	setEncoding : function(encoding) {

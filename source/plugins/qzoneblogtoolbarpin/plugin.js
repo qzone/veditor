@@ -9,6 +9,10 @@
 	var TOP_EDITOR_BASE_TB_LNKID = 'qzoneblog_base_tb_link';
 	var TOP_EDITOR_ADV_TB_LNKID = 'qzoneblog_adv_tb_link';
 
+	var GLOBAL_CSS = '/qzone/veditor/source/view/def/css/global.css';
+	var BASE_TB_CSS = '/qzone/veditor/source/plugins/toolbarswitcher/base.css';
+	var ADV_TB_CSS = '/qzone/veditor/source/plugins/toolbarswitcher/advance.css';
+
 	//原有css保存
 	var toolbarContainerOriCss;
 	var toolbarOriCss;
@@ -123,11 +127,11 @@
 			this._fakeMask.style.cssText = 'border-bottom:1px solid #ccc; background-color:#eee';
 			frameElement.parentNode.appendChild(this._fakeMask);
 
-			TOP_WIN.QZFL.css.insertCSSLink('/qzone/veditor/view/def/css/global.css?r='+Math.random(), TOP_EDITOR_CSS_LNKID);
+			TOP_WIN.QZFL.css.insertCSSLink(GLOBAL_CSS+'?r='+Math.random(), TOP_EDITOR_CSS_LNKID);
 
 			this.editor.tryIO('onAfterSwitchToolbar', function(ev){
-				TOP_WIN.QZFL.css.insertCSSLink('/qzone/veditor/plugins/toolbarswitcher/base.css?r='+Math.random(), TOP_EDITOR_BASE_TB_LNKID);
-				TOP_WIN.QZFL.css.insertCSSLink('/qzone/veditor/plugins/toolbarswitcher/advance.css?r='+Math.random(), TOP_EDITOR_ADV_TB_LNKID);
+				TOP_WIN.QZFL.css.insertCSSLink(BASE_TB_CSS+'?r='+Math.random(), TOP_EDITOR_BASE_TB_LNKID);
+				TOP_WIN.QZFL.css.insertCSSLink(ADV_TB_CSS+'?r='+Math.random(), TOP_EDITOR_ADV_TB_LNKID);
 			});
 
 			ve.dom.setStyle(this._fakeMask, {

@@ -1,0 +1,29 @@
+<!DOCTYPE>
+<html>
+<head>
+	<title>API接口</title>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+	<script type="text/javascript" src="../release/ve.standalone.js"></script>
+	<script src="res/help.js"></script>
+	<link rel="stylesheet" href="res/css.css">
+</head>
+<body>
+	<h1>API接口</h1>
+	<div id="ed1"><!-- 容器 --></div>
+	<br/>
+	<input type="button" value="设置HTML" onclick="log(editor.setContent({content:'test'}));">
+	<input type="button" value="插入HTML" onclick="log(editor.insertHtml({content:'hello.'}))">
+	<input type="button" value="获取内容" onclick="log(editor.getContent())">
+	<input type="button" value="调用IO方法：toggleHtmlEditor" onclick="log(editor.tryIO('toggleHtmlEditor', function(fn){fn()}))">
+	<input type="button" value="监听IO事件：onSaveContent" onclick="this.disabled = true; editor.tryIO('onSaveContent', function(ev){ev.add(function(s){log('保存事件:'+s)})})">
+	<input type="button" value="直接调用getBody()" onclick="log(editor.getBody())">
+	<script type="text/javascript">
+        var editor = VEditor.create({
+			container: 'ed1',
+			height: 200,
+			plugins: 'history,save,htmleditor',  //指定需要加在的插件列表，以逗号分隔
+			buttons: 'html,save|undo,redo' //工具条按钮配置，逗号分隔按钮，竖线分组
+		});
+	</script>
+</body>
+</html>

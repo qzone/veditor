@@ -1,6 +1,7 @@
 (function(ve){
 	var KEYS = ve.dom.event.KEYS;
 	var UTF8_SPACE = decodeURI('%C2%A0');
+	var LINE_HEIGHT = 20;
 	var TIP_CLASS = 'veditor_mention_tips';
 	var LINK_CLASS = 'q_namecard c_tx';
 
@@ -22,6 +23,7 @@
 		className: 'qzone_mention_user',
 
 		friendList: [],
+		lastRegion: null,
 
 		/**
 		 * 插件初始化
@@ -34,9 +36,6 @@
 			}
 			var _this = this;
 			this.editor = editor;
-			this.editor.onMouseDown.add(function(){
-				_this.hideTip();
-			});
 
 			//[fix] ie下会将 abc@a这种转换成为邮箱地址,关闭IE地址自动转换功能
 			if(ve.ua.ie && ve.ua.ie >= 9){
@@ -89,17 +88,24 @@
 				_lastUserList = userList;
 			});
 
+			//在好友列表里面进行键盘快捷操作，如方向键和回车键
 			//这里把控制事件放入keyDown, 提前到其他类似updaterange, history前面
+			var _insertMentionChar;
 			this.editor.onKeyDown.addFirst(function(e){
+				//输入@的时候
+				if(e.keyCode == 50 && e.shiftKey){
+					_insertMentionChar = true;
+				} else {
+					_insertMentionChar = false;
+				}
+
 				//up, down, tab
-				if(e.keyCode == KEYS.UP || e.keyCode == KEYS.DOWN || e.keyCode == KEYS.TAB){
-					if(_this.inputing){
+				if(_this.inputing){
+					if(e.keyCode == KEYS.UP || e.keyCode == KEYS.DOWN || e.keyCode == KEYS.TAB){
 						_this.movePanelIndex(e.keyCode == KEYS.DOWN || e.keyCode == KEYS.TAB);
 						ve.dom.event.preventDefault(e);
 						return false;
-					}
-				} else if(e.keyCode == KEYS.RETURN){
-					if(_this.inputing){
+					} else if(e.keyCode == KEYS.RETURN){
 						var lis = _this.tip.getElementsByTagName('li');
 						var uin;
 						ve.lang.each(lis, function(li){
@@ -121,23 +127,23 @@
 				}
 			});
 
-			var B_CHINESE_INPUTING = false;	//[fix] safari中文输入问题(中文输入下面，如果创建bookmark的话，会导致实际输入法关闭)
-			var CHINESE_TM;
-			this.editor.onKeyDown.add(function(e){
-				if(ve.ua.safari && e.keyCode == 229){
-					B_CHINESE_INPUTING = true;
-					clearTimeout(CHINESE_TM);
-					CHINESE_TM = setTimeout(function(){
-						B_CHINESE_INPUTING = false;
-					}, 1000);
-				}
-			});
-
 			//KEY KEYS.UP
 			this.editor.onKeyUp.addLast(function(e){
+				if(_insertMentionChar || (e.keyCode == 50 && e.shiftKey)){
+					var rng = _this.editor.getVERange();
+					var bookmark = rng.createBookmark();
+					var st = bookmark['start'];
+					st.style.cssText = 'inline-block;width:1px; height:1px; padding:1px;';
+					var r = ve.dom.getRegion(st);
+					_this.lastRegion = {left:r.left, top:r.top};
+					rng.moveToBookmark(bookmark);
+					return;
+				}
+				_insertMentionChar = false;
+
 				if(!e.ctrlKey && !e.shiftKey &&
 					e.keyCode != KEYS.UP && e.keyCode != KEYS.DOWN &&
-					e.keyCode != KEYS.RETURN && e.keyCode != KEYS.TAB && e.keyCode != KEYS.ESC && !B_CHINESE_INPUTING){
+					e.keyCode != KEYS.RETURN && e.keyCode != KEYS.TAB && e.keyCode != KEYS.ESC){
 					_this.detectStr();
 				} else if(e.keyCode == KEYS.ESC){
 					_this.hideTip();
@@ -147,6 +153,13 @@
 			//PASTE
 			this.editor.onAfterPaste.addLast(function(){
 				_this.detectStr();
+			});
+
+			//鼠标点击，关闭tip
+			this.editor.onMouseDown.add(function(){
+				_insertMentionChar = false;
+				_this.lastRegion = null;
+				_this.hideTip();
 			});
 
 			//MOUSE UP
@@ -319,23 +332,34 @@
 		 * @return {[type]} [description]
 		 */
 		getCurrentCaretRegion: function(){
-			var rng = this.editor.getVERange();
-			if(rng.collapsed){
-				var bookmark = rng.createBookmark();
-				bookmark.start.style.display = 'inline-block';
-				var region = ve.dom.getRegion(bookmark.start);
-				rng.moveToBookmark(bookmark);
-				rng.select(true);
-				if(this.editor.iframeElement){
-					var frameRegion = ve.dom.getRegion(this.editor.iframeElement);
-					if(frameRegion){
-						region.top += frameRegion.top
-						region.left += frameRegion.left;
-					}
+			var region = this.lastRegion;
+			var left = 0, top = 0;
+
+			if(!region){
+				var rng = this.editor.getVERange();
+				if(rng.collapsed){
+					var bookmark = rng.createBookmark();
+					bookmark.start.style.display = 'inline-block';
+					region = ve.dom.getRegion(bookmark.start);
+					top = region.top;
+					left = region.left;
+					rng.moveToBookmark(bookmark);
+					rng.select(true);
+					this.lastRegion = region;
 				}
-				return region;
+			} else {
+				left = region.left;
+				top = region.top;
 			}
-			return {left:0, top:0, height:0, width:0};
+
+			if(this.editor.iframeElement){
+				var frameRegion = ve.dom.getRegion(this.editor.iframeElement);
+				if(frameRegion){
+					top += frameRegion.top
+					left += frameRegion.left;
+				}
+			}
+			return {left:left, top:top};
 		},
 
 		/**
@@ -376,19 +400,20 @@
 
 			var posInfo = this.getCurrentCaretRegion();
 			var tipSize = ve.dom.getSize(this.tip);
-			
+
 			if(window.frameElement){
 				var frameSize = ve.dom.getSize(window.frameElement);
 				if(posInfo){
 					var left = (posInfo.left + tipSize[0] > frameSize[0]) ? (frameSize[0] - tipSize[0]) : posInfo.left;
-					var top = (posInfo.top + tipSize[1] + 50 > frameSize[1]) ? (posInfo.top - tipSize[1] - 5) : (posInfo.height + posInfo.top+5);
+					var top = (posInfo.top + tipSize[1] > frameSize[1]) ? (posInfo.top - tipSize[1] - 5) : posInfo.top+LINE_HEIGHT;
+
 					this.tip.style.left = left+ "px";
 					this.tip.style.top = top+ "px";
 				}
 			} else {
 				if(posInfo){
 					this.tip.style.left = posInfo.left + "px";
-					this.tip.style.top = (posInfo.top + 20) + "px";
+					this.tip.style.top = (posInfo.top + LINE_HEIGHT) + "px";
 				}
 			}
 		},
@@ -653,7 +678,7 @@
 			if(!so){
 				return '';
 			} else {
-				var n = sc.childNodes[so];
+				var n = sc.childNodes[so-1];
 				while(n && n.nodeType == 3){
 					retVal = n.nodeValue + retVal;
 					n = n.previousSibling;
@@ -693,7 +718,8 @@
 				endIdx = _s;
 			}
 			//这里trim是为了去除 blankChar
-			return ve.string.trim(pStr + nStr.substring(0, endIdx));
+			//去除'主要是为了QQ拼音输入这种，会插入单引号
+			return ve.string.trim(pStr + nStr.substring(0, endIdx)).replace(/\'/g,'');
 		}
 		return '';
 	};

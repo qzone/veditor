@@ -31,7 +31,7 @@
 				placeholder: '',				//placeholder，仅检测文字命中部分，不对其他元素进行校验，
 												//也就是说，如果placeholder = '<div><b>text</b></div>'；那仅校验 text
 
-				language: 'cn',					//语言包
+				language: 'cn',					//语言包!该功能暂未启用
 				adapter: '',					//适配器
 				viewer: 'def',					//视图
 				editorCss: '',					//编辑器区域样式
@@ -145,7 +145,7 @@
 
 		/**
 		 * 启动插件
-		**/
+		 **/
 		_launchPlugins: function(){
 			var url = {}, ppc = [], matches, t = this,
 				pls = this.conf['plugins'],
@@ -1015,6 +1015,35 @@
 									ve.dom.event.preventDefault(e);
 								}
 							}
+
+							/**fix IE下删除列表除第一个LI外其他LI，跳出列表的问题
+							 * <ol>
+							 *	<li>aaaa</li>
+							 *	<li>|bbbb</li>
+							 * </ol>
+							 * bbbb会跳出ol的问题
+							 */
+							if(isStartInParent(rng)){ //选区开始在某列表内且前面没有显示的兄弟元素
+								if (rng.startContainer.parentNode.tagName == 'UL' || rng.startContainer.parentNode.tagName == 'OL' || rng.startContainer.parentNode.tagName == 'LI') { //当前选取在列表内
+									try{
+										currentLI = ve.dom.getParent(rng.startContainer, function(node){return node.tagName == 'LI';});
+									}catch (ev){
+										currentLI = '';
+									}
+									//console.log(currentLI.innerHTML);
+									if(currentLI && currentLI.previousSibling && currentLI.previousSibling.tagName == 'LI'){ //非列表内第一个li
+										rng.startContainer = currentLI.previousSibling;
+										rng.startOffset = currentLI.previousSibling.childNodes.length;
+										rng.collapse(true);
+										rng.select();
+										while(currentLI.firstChild){
+											currentLI.previousSibling.appendChild(currentLI.firstChild);
+										}
+										ve.dom.remove(currentLI);
+										ve.dom.event.preventDefault(e);
+									}
+								}
+							}
 						}
 					}
 
@@ -1077,6 +1106,53 @@
 							rng.collapse(true);
 							rng.select();
 							ve.dom.event.preventDefault(e);
+						}
+					}
+					/**
+					 * fix chrome,firefox等浏览器无法删除列表第一个元素的情况
+					 * <ol>
+					 * 	  <li>|ddd</li>
+					 * </ol>
+					 * 广标后面有ddd等其他内容即使是个空格，无法删除该LI的情况
+					 */
+					else if(e.keyCode == 8){ //其他浏览器中列表首个删除fix
+						var rng = t.getVERange();
+						var currentLI,tempParent;
+						if(!rng.collapsed){ //选中某段文字的情况，暂用浏览器默认方法
+							return;
+						}else{ //鼠标在列表内未选择任何文字的情况
+							if(isStartInParent(rng)){ //鼠标在父节点内且前面没有显示的兄弟元素
+								if (rng.startContainer.parentNode && (rng.startContainer.parentNode.tagName == 'UL' || rng.startContainer.parentNode.tagName == 'OL' || rng.startContainer.parentNode.tagName == 'LI')) { //当前选取在列表内
+									try{
+										currentLI = ve.dom.getParent(rng.startContainer, function(node){return node.tagName == 'LI';});
+									}catch (ev){
+										currentLI = '';
+									}
+									if(currentLI && currentLI.parentNode && currentLI.parentNode.parentNode && currentLI.parentNode.firstChild == currentLI){ //当前为列表的第一个li
+										while(currentLI.firstChild){
+											currentLI.parentNode.parentNode.insertBefore(ve.dom.remove(currentLI.firstChild), currentLI.parentNode);
+										}
+										rng.select(true);
+										if(currentLI && (tempParent = currentLI.parentNode)){
+											ve.dom.remove(currentLI);
+											if(!tempParent.firstChild){
+												ve.dom.remove(tempParent);
+											}
+										}
+									}
+									else if(currentLI && currentLI.previousSibling.tagName == 'LI'){ //非列表内第一个li
+										rng.startContainer = currentLI.previousSibling;
+										rng.startOffset = currentLI.previousSibling.childNodes.length;
+										rng.collapse(true);
+										rng.select();
+										while(currentLI.firstChild){
+											currentLI.previousSibling.appendChild(currentLI.firstChild);
+										}
+										ve.dom.remove(currentLI);
+										ve.dom.event.preventDefault(e);
+									}
+								}
+							}
 						}
 					}
 				});
@@ -1185,8 +1261,9 @@
 			t.onKeyUp.addFirst(function(e){
 				if(e.keyCode != 16 && e.shiftKey){
 					//按着shift松开其他按键[方向键]这种情况不能更新range，否则会出现用户选择不全的情况
-				} else if(!e.ctrlKey && e.keyCode != 17){
-					//去除 ctrl+v等功能键冲突
+				}
+				//去除 ctrl+v，中文输入法冲突
+				else if(!e.ctrlKey && e.keyCode != 17 && e.keyCode != 229){
 					t.updateLastVERange();
 				}
 			});
@@ -1319,4 +1396,33 @@
 			});
 		}
 	});
+
+	/**
+	 * 判断选区是否在父级元素的开始或选区开始本身为LI的开始（ie下startContainer会为li），包括以下几种情况
+	 * 1,前面没有兄弟元素
+	 * 2,前面的兄弟元素为不显示元素或空文本
+	 * @param {Range} range
+	 * @return {Boolean}
+	 */
+	var isStartInParent = function(range){
+		var start = range.startContainer,
+			tmp;
+		if(range.startOffset == 0){
+			if(!range.startContainer.previousSibling ||range.startContainer.tagName == "LI"){
+				return true;
+			}else{
+				tmp = range.startContainer.previousSibling;
+				while(tmp){
+					if(!tmp.firstChild || ve.dom.getChildCount(tmp) == 0){
+						tmp = tmp.previousSibling;
+					}else{
+						return false;
+					}
+				}
+				return true;
+			}
+		}else{
+			return false;
+		}
+	};
 })(window, document, VEditor);

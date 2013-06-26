@@ -27,6 +27,14 @@
 					}
 				}
 			});
+			this.editor.onClick.add(function(e){
+				var rng = _this.editor.getVERange();
+				if((rng.startContainer.tagName == 'UL' || rng.startContainer.tagName == 'OL')){
+					rng.startContainer = rng.startContainer.lastChild;
+					rng.startOffset = 0;
+					rng.collapse(true);
+				}
+			});
 		},
 
 		/**
@@ -37,6 +45,7 @@
 		_handerEnter: function(){
 			var rng = this.editor.getVERange();
 			var sc, start, cursorPos;
+			var tempSpan = rng.doc.createElement('span');
 
 			if(!this._inList(rng)){
 				return;
@@ -49,90 +58,60 @@
 
 			var liNode = this.editor.getDoc().createElement('LI');
 			var con = this._inList(rng);
-
 			if(!con){
 				console.log('处理失败');
 				return;
 			}
 
-			var cursorPos = this.getCursorPos(con, rng);
-			if(cursorPos == POS_LEFT){
-				ve.dom.insertBefore(liNode, con);
-			} else if(cursorPos == POS_RIGHT){
-				ve.dom.insertAfter(liNode, con);
-				rng.selectNodeContents(liNode);
-				rng.select();
-			} else {
-				var bookmark = rng.createBookmark();
-				var tmpRng = rng.cloneRange();
-				tmpRng.setStartAfter(bookmark.start);
-				tmpRng.setEndAfter(con.childNodes[con.childNodes.length-1]);
-				var frag = tmpRng.extractContents();
-				liNode.appendChild(frag);
-				ve.dom.insertAfter(liNode, con);
-				rng.setStartBefore(liNode.firstChild);
-				rng.collapse(true);
-				rng.select();
-			}
-			return true;
-		},
-
-		/**
-		 * 获取当前start在con里面的位置情况
-		 * @param {DOM} con
-		 * @param {Range} rng
-		 * @return {Number}
-		 **/
-		getCursorPos: function(con, rng){
 			var bookmark = rng.createBookmark();
-			var s = bookmark.start;
-			var p = s;
-			var pos = POS_MID;
-
-			if(rng.startOffset >0 && rng.startContainer.childNodes.length > rng.startOffset){
-				return POS_MID;
+			var tmpRng = rng.cloneRange();
+			tmpRng.setStartAfter(bookmark.start);
+			if(con.childNodes.length > 0){
+				tmpRng.setEndAfter(con.childNodes[con.childNodes.length-1]);
+			}else{
+				tmpRng.setEndAfter(bookmark.start);
 			}
-
-			var p = s;
-			while(p !== con){
-				if(!p.previousSibling){
-					pos = POS_LEFT;
-					break;
-				} else if(!p.nextSibling){
-					pos = POS_RIGHT;
-					break;
-				} else {
-					p = p.parentNode;
-				}
+			var frag = tmpRng.extractContents();
+			if(this.isEmptyNode(frag) || this.isTagNode(frag,'li') || !frag.lastChild.innerHTML){
+				tempSpan.innerHTML = '&nbsp;';
+				frag.appendChild(tempSpan);
 			}
-			rng.moveToBookmark(bookmark);
-			return pos;
+			liNode.appendChild(frag);
+			if(this.isEmptyNode(con) || (this.isEmptyNode(con.lastChild) && this.isTagNode(con.lastChild,'span')) || !con.lastChild.innerHTML){
+				tempSpan.innerHTML = '&nbsp;';
+				con.appendChild(tempSpan);
+			}
+			ve.dom.insertAfter(liNode, con);
+			if(liNode.firstChild){
+				rng.setStartBefore(liNode.firstChild);
+			}else{
+				rng.setStartBefore(liNode);
+			}
+			rng.collapse(true);
+			rng.select();
+			return true;
 		},
 
 		/**
 		 * 检测range包含list
 		 **/
 		_inList: function(rng){
-			var start, end, _start, _end, sc = rng.startContainer,ec = rng.endContainer;
-
-			_start = sc.nodeType == 3 ? sc.parentNode : sc.childNodes[0];
-			_end = ec.nodeType == 3 ? ec.parentNode : ec.childNodes[ec.childNodes.length-1];
-
+			var start, end, sc = rng.startContainer,ec = rng.endContainer;
 			if(rng.collapsed){
-				start = ve.dom.getParent(_start, function(node){return node.tagName == 'LI';});
+				start = this.findParentByTagName(sc, 'li', true);
 			} else {
-				end = ve.dom.getParent(_end, function(node){return node.tagName == 'LI';});
+				end = this.findParentByTagName(ec, 'li', true);
 			}
 			return start || end;
 		},
 		
 		/**
-		 * insertList插入列表逻辑
+		 * insertOrDelList插入列表逻辑
 		 * @param command string 区分有序还是无序列表
 		 * @param style 待扩展功能，设置列表样式
 		 *
 		 **/
-		insertList: function(command, style){
+		insertOrDelList: function(command, style){
 			if (!style) {
 				style = command.toLowerCase() == 'insertorderedlist' ? 'decimal' : 'disc';
 			}
@@ -209,13 +188,16 @@
 				if (startParent === endParent) {
 					while (start !== end) {
 						tmp = start;
-						start = start.nextSibling;
+						start = start.nextSibling || null;
 						
 						if (!ve.dom.isBlock(tmp.firstChild) && tmp.lastChild && tmp.lastChild.nodeName.toLowerCase() !== 'br') {
 
 							tmp.appendChild(veRange.doc.createElement('br')); //为li下的非块元素添加换行
 						}
 						frag.appendChild(tmp);
+						if(!start){
+							break;
+						}
 					}
 					
 					tmp = veRange.doc.createElement('span');
@@ -230,21 +212,17 @@
 					veRange.breakParent(tmp, startParent);
 					
 					if (this.isEmptyNode(tmp.previousSibling)) {
-					
 						ve.dom.remove(tmp.previousSibling);
 					}
 					if (this.isEmptyNode(tmp.nextSibling)) {
-					
 						ve.dom.remove(tmp.nextSibling)
 					}
 					
-					var nodeStyle = ve.dom.getStyle(startParent, 'list-style-type') || this.getComputedStyle(startParent, 'list-style-type') || (command.toLowerCase() == 'insertorderedlist' ? 'decimal' : 'disc');
+					var nodeStyle = ve.dom.getStyle(startParent, 'list-style-type') || (command.toLowerCase() == 'insertorderedlist' ? 'decimal' : 'disc');
 					
 					if (startParent.tagName.toLowerCase() == tag && nodeStyle == style) {
-					
 						for (var i = 0, ci, tmpFrag = veRange.doc.createDocumentFragment(); ci = frag.childNodes[i++];) {
 							if(this.isTagNode(ci,'ol ul')){
-							
 								ve.lang.each(ci.getElementsByTagName('li'),function(li){
 									while(li.firstChild){
 										tmpFrag.appendChild(li.firstChild);
@@ -256,7 +234,6 @@
 								}
 							}
 						}
-						
 						tmp.parentNode.insertBefore(tmpFrag, tmp);
 						
 					} else {
@@ -293,7 +270,6 @@
 							}
 							ve.dom.remove(start);
 						}
-
 						start = tmp;
 					}
 					startParent.parentNode.insertBefore(frag, startParent.nextSibling);
@@ -341,7 +317,6 @@
 					if (this.isEmptyNode(endParent)) {
 						ve.dom.remove(endParent);
 					}
-
 					modifyEnd = 1;
 				}
 			}
@@ -367,12 +342,9 @@
 
 				if (current.nodeType == 3 || ve.dtd.li[current.tagName]) {
 					if (current.nodeType == 1 && ve.dtd.$list[current.tagName]) {
-					
 						while (current.firstChild) {
-						
 							frag.appendChild(current.firstChild);
 						}
-						
 						tmpNode = ve.dom.getNextDomNode(current, false, filterFn);
 						ve.dom.remove(current);
 						current = tmpNode;
@@ -383,7 +355,6 @@
 					tmpRange.setStartBefore(current);
 
 					while (current && current !== bk.end && (!ve.dom.isBlock(current) || veRange.isBookmarkNode(current) )) {
-					
 						tmpNode = current;
 						current = ve.dom.getNextDomNode(current, false, null, function (node) {
 							return !notExchange[node.tagName];
@@ -412,6 +383,13 @@
 			veRange.moveToBookmark(bk).collapse(true);
 			list = veRange.doc.createElement(tag);
 			list.style['list-style-type'] = style;
+			if(frag.childNodes.length == 0){
+				tmpNode = veRange.doc.createElement('span');
+				tmpNode.innerHTML = '&nbsp;';
+				var tmpLi = veRange.doc.createElement('li');
+				tmpLi.appendChild(tmpNode);
+				frag.appendChild(tmpLi);
+			}
 			list.appendChild(frag);
 			
 			veRange.insertNode(veRange.doc.createElement('br'));//放置一个换行，输入列表外内容
@@ -601,15 +579,7 @@
 		isTagNode: function (node, tagName) {
 			return node.nodeType == 1 && new RegExp(node.tagName,'i').test(tagName)
 		},
-		
-		/**
-		 * 获取计算后样式
-		 */
-		getComputedStyle: function (){
-		
-			return '';
-		},
-		
+
 		/**
 		 * 判断节点是否为空节点
 		 */
@@ -687,20 +657,20 @@
 			}});
 			
 			t.addCommand('InsertOrderedList', function(){
-				_this.insertList('InsertOrderedList');
+				_this.insertOrDelList('InsertOrderedList');
 			});
 			
 			tm.createButton('listul', {title: '无序列表', 'class': 'veUnorderedList', cmd: 'InsertUnorderedList', onInit: function(){
 				var btn = this;
 				t.onAfterUpdateVERangeLazy.add(function(){
 					var act = 'setUnActive';
-					try {act = t.getDoc().queryCommandState('veUnorderedList') ? 'setActive' : 'setUnActive';} catch(ex){};
+					try {act = t.getDoc().queryCommandState('InsertUnorderedList') ? 'setActive' : 'setUnActive';} catch(ex){};
 					btn[act]();
 				});
 			}});
 			
 			t.addCommand('InsertUnorderedList', function(){
-				_this.insertList('InsertUnorderedList');
+				_this.insertOrDelList('InsertUnorderedList');
 			});
 
 		}

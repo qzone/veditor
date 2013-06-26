@@ -32,18 +32,18 @@ importClass(java.lang.System);
 var ENV = {
 	/**
 	 * 用户执行所在的路径
-	 * 
+	 *
 	 * @type String
 	 */
 	userDir : new String(System.getProperty("user.dir")),
 
 	/**
 	 * 操作系统分隔符
-	 * 
+	 *
 	 * @type String
 	 */
 	separator : System.getProperty("file.separator") || "/",
-	
+
 	/**
 	 * 配置文件的相对路径
 	 * @type String
@@ -53,7 +53,7 @@ var ENV = {
 
 /**
  * 配置文件
- * 
+ *
  * @type CONF
  */
 var CONF = {
@@ -65,7 +65,7 @@ var CONF = {
 
 /**
  * 执行参数
- * 
+ *
  * @type OPT
  */
 var OPT = null;
@@ -113,7 +113,7 @@ function initEnvironment(args) {
 
 	var _conf = IO.readFile(OPT.c);
 	ENV.configDir = IO.getAbsoluteDir(OPT.c)
-	
+
 	if (_conf) {
 		eval("CONF = " + _conf);
 		IO.setEncoding(CONF.encode);
@@ -174,9 +174,8 @@ function showHelp() {
  * 主进程
  */
 function run() {
-	
 	startMerge(CONF.projects);
-	writeLog();
+	writeLog(CONF.log);
 }
 
 /*
@@ -186,5 +185,5 @@ initEnvironment(arguments);
 
 /*
  * 执行主逻辑
- */ 
+ */
 run();

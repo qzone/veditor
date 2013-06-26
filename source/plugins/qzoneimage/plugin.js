@@ -77,11 +77,7 @@
 				cmd: function(){
 					_this.topWin.insertPhotoContent = null;
 					//业务参数
-					_this.config.panel.url = ([_this.config.baseURL,
-						'&blog_type=',_this.blogType,
-						'&uin=', _this.loginUin,
-						'&goLastAid='+goLastAid,
-						]).join('');
+					_this.config.panel.url = ([_this.config.baseURL,'&blog_type=',_this.blogType,'&uin=', _this.loginUin,'&goLastAid='+goLastAid]).join('');
 					goLastAid = 1;
 					_this.showPanel();
 				}

@@ -3,9 +3,6 @@
 		throw "VEDITOR NAMESPACE CONFLICT";
 	}
 
-	//设定发布目录，缺省为使用source
-	var VEDITOR_RELEASE_PATH = window.VEDITOR_RELEASE_PATH === undefined ? './../source/' : window.VEDITOR_RELEASE_PATH;
-
 	/**
 	 * window console方法容错
 	 * @deprecate 由于编辑器在开发过程中可能使用了console.log等此类的
@@ -17,46 +14,91 @@
 	}
 
 	/**
-	 * 编辑器主脚本路径
-	 * @deprecate 改方法仅判断页面上 script节点里面src包含ve.[*.]js的脚本路径
-	 * 因此如果页面上存在类似命名的脚本，将导致调用该变量的功能失效
+	 * 编辑器基础URL前缀作为veditor的相对路径，
+	 * 如调用主脚本的路径为：http://a.com/b/ve.js，则该相对路径为http://a.com/b/
 	 **/
-	var SCRIPT_SRC = (function(){
-		var scriptList = document.getElementsByTagName('script');
-		for (var i=0; i<scriptList.length; i++) {
-			var src = scriptList[i].src;
-			if (src && /ve\.(\w|\.)*js/.test(src)) {
-				return src;
+	var BASE_PATH = window.VE_BASE_PATH || (function(){
+		var isIE = !!window.attachEvent;
+
+		/**
+		 * 获取host前面部分
+		 * @param  {String} loc 非://word.com/格式不处理
+		 * @return {String}
+		 */
+		var getPreHost = function(loc){
+			loc = loc + '/';
+			if(!/(^\w+:\/\/[^\/]+\/)/.test(loc)){
+				return loc;
+			} else {
+				var tmp = /(^\w+:\/\/[^\/]+\/)/.exec(loc);
+				return tmp[1];
 			}
-		}
-		return null;
-	})();
+		};
 
-	/**
-	 * 编辑器基础URL前缀
-	 * 作为veditor的相对路径
-	 **/
-	var BASE_PATH = (function(){
-		if(!SCRIPT_SRC){
+		/**
+		 * 获取地址的path部分
+		 * 处理：http://a.com/b/c/d.html 返回 b/c
+		 * @param  {String} loc
+		 * @return {String}
+		 */
+		var getPrePath = function(loc){
+			return loc.replace(/^\w+:\/\/[^\/]+\//, '').replace(/[^\/]*$/, '').replace(/\/$/,'').replace(/^\//,'');
+		};
+
+		/**
+		 * 是否为绝对地址
+		 * @param  {String} loc
+		 * @return {Boolean}
+		 */
+		var isAbsLoc = function(loc){
+			return loc.substring(0, 1) == '/';
+		};
+
+		/**
+		 * 编辑器主脚本路径
+		 * @deprecate 改方法仅判断页面上 script节点里面src包含ve.[*.]js的脚本路径
+		 * 因此如果页面上存在类似命名的脚本，将导致调用该变量的功能失效
+		 **/
+		var SCRIPT_PATH = (function(){
+			var scriptList = document.getElementsByTagName('script');
+			for (var i=0; i<scriptList.length; i++) {
+				var src = scriptList[i].src;
+				if (src && /\/ve\.(\w|\.)*js/.test(src)) {
+					return src.replace(/[^\/]*$/, '');
+				}
+			}
+			return null;
+		})();
+
+		//页面指定了base路径
+		//返回 http://a.com 或 http://a.com/b/c 格式
+		var BASE_LOC = (function(){
+			var tmp = document.getElementsByTagName('BASE');
+			if(tmp && tmp.length && tmp[0].href){
+				var href = tmp[0].href;
+				href = href.indexOf('://') < 0 ? 'http://'+href : href;
+				return href.replace(/\/$/, '');
+			}
 			return '';
+		})();
+
+		//绝对路径形式调用，如：http://a.com/b/ve.js
+		//非IE会自动补全script的src，如 /a.js 补全为 http://a.com/a.js
+		if(!isIE || /:\/\//.test(SCRIPT_PATH)){
+			return SCRIPT_PATH;
 		}
 
-		var PATH_HOST = location.protocol + '//' +  location.hostname + (location.port ? ':'+location.port : '')+'/';
-		var scriptPath = SCRIPT_SRC.replace(/[^\/]*$/, '');
-
-		var forceDomain = '';
-		var tmp = document.getElementsByTagName('BASE');
-		if(tmp && tmp.length && tmp[0].href){
-			forceDomain = tmp[0].href.replace(/\/$/,'')+'/';
+		//绝对路径
+		if(isAbsLoc(SCRIPT_PATH)){
+			return getPreHost(BASE_LOC||location.href).replace(/\/$/,'') + SCRIPT_PATH;
 		}
-
-		if(/^(\.)*\//.test(scriptPath)){
-			return (forceDomain || PATH_HOST) +scriptPath.replace(/^\//, '')+VEDITOR_RELEASE_PATH;
-		} else {
-			return scriptPath+VEDITOR_RELEASE_PATH;
+		//相对路径
+		else {
+			return BASE_LOC ? BASE_LOC+'/'+SCRIPT_PATH : getPreHost(location.href)+getPrePath(location.href)+'./'+SCRIPT_PATH;
 		}
 	})();
 
+	//编辑器对象集合
 	var EDITOR_COLLECTIONS = {};
 
 	/**
@@ -71,7 +113,7 @@
 		},
 
 		plugin: {},
-		version: '2.02',
+		version: '2.03',
 		blankChar: '\uFEFF',
 		fillCharReg: new RegExp('\uFEFF', 'g'),
 		caretChar: '\u2009',
@@ -115,7 +157,7 @@
 			this.add(editor);
 
 			setTimeout(function(){
-				editor.init();
+			editor.init();
 			}, 100);
 
 			return editor;
@@ -123,6 +165,7 @@
 	};
 
 	//占用命名空间
+	//@deprecate 这里由于旧版的使用的命名空间为veEditor，所以暂时适配
 	window.veEditor = window.VEditor = VEditor;
 }) (window, document);
 (function(window, document, ve, undefined) {
@@ -1645,7 +1688,7 @@
 				placeholder: '',				//placeholder，仅检测文字命中部分，不对其他元素进行校验，
 												//也就是说，如果placeholder = '<div><b>text</b></div>'；那仅校验 text
 
-				language: 'cn',					//语言包
+				language: 'cn',					//语言包!该功能暂未启用
 				adapter: '',					//适配器
 				viewer: 'def',					//视图
 				editorCss: '',					//编辑器区域样式
@@ -1759,7 +1802,7 @@
 
 		/**
 		 * 启动插件
-		**/
+		 **/
 		_launchPlugins: function(){
 			var url = {}, ppc = [], matches, t = this,
 				pls = this.conf['plugins'],
@@ -2629,6 +2672,35 @@
 									ve.dom.event.preventDefault(e);
 								}
 							}
+
+							/**fix IE下删除列表除第一个LI外其他LI，跳出列表的问题
+							 * <ol>
+							 *	<li>aaaa</li>
+							 *	<li>|bbbb</li>
+							 * </ol>
+							 * bbbb会跳出ol的问题
+							 */
+							if(isStartInParent(rng)){ //选区开始在某列表内且前面没有显示的兄弟元素
+								if (rng.startContainer.parentNode.tagName == 'UL' || rng.startContainer.parentNode.tagName == 'OL' || rng.startContainer.parentNode.tagName == 'LI') { //当前选取在列表内
+									try{
+										currentLI = ve.dom.getParent(rng.startContainer, function(node){return node.tagName == 'LI';});
+									}catch (ev){
+										currentLI = '';
+									}
+									//console.log(currentLI.innerHTML);
+									if(currentLI && currentLI.previousSibling && currentLI.previousSibling.tagName == 'LI'){ //非列表内第一个li
+										rng.startContainer = currentLI.previousSibling;
+										rng.startOffset = currentLI.previousSibling.childNodes.length;
+										rng.collapse(true);
+										rng.select();
+										while(currentLI.firstChild){
+											currentLI.previousSibling.appendChild(currentLI.firstChild);
+										}
+										ve.dom.remove(currentLI);
+										ve.dom.event.preventDefault(e);
+									}
+								}
+							}
 						}
 					}
 
@@ -2691,6 +2763,53 @@
 							rng.collapse(true);
 							rng.select();
 							ve.dom.event.preventDefault(e);
+						}
+					}
+					/**
+					 * fix chrome,firefox等浏览器无法删除列表第一个元素的情况
+					 * <ol>
+					 * 	  <li>|ddd</li>
+					 * </ol>
+					 * 广标后面有ddd等其他内容即使是个空格，无法删除该LI的情况
+					 */
+					else if(e.keyCode == 8){ //其他浏览器中列表首个删除fix
+						var rng = t.getVERange();
+						var currentLI,tempParent;
+						if(!rng.collapsed){ //选中某段文字的情况，暂用浏览器默认方法
+							return;
+						}else{ //鼠标在列表内未选择任何文字的情况
+							if(isStartInParent(rng)){ //鼠标在父节点内且前面没有显示的兄弟元素
+								if (rng.startContainer.parentNode && (rng.startContainer.parentNode.tagName == 'UL' || rng.startContainer.parentNode.tagName == 'OL' || rng.startContainer.parentNode.tagName == 'LI')) { //当前选取在列表内
+									try{
+										currentLI = ve.dom.getParent(rng.startContainer, function(node){return node.tagName == 'LI';});
+									}catch (ev){
+										currentLI = '';
+									}
+									if(currentLI && currentLI.parentNode && currentLI.parentNode.parentNode && currentLI.parentNode.firstChild == currentLI){ //当前为列表的第一个li
+										while(currentLI.firstChild){
+											currentLI.parentNode.parentNode.insertBefore(ve.dom.remove(currentLI.firstChild), currentLI.parentNode);
+										}
+										rng.select(true);
+										if(currentLI && (tempParent = currentLI.parentNode)){
+											ve.dom.remove(currentLI);
+											if(!tempParent.firstChild){
+												ve.dom.remove(tempParent);
+											}
+										}
+									}
+									else if(currentLI && currentLI.previousSibling.tagName == 'LI'){ //非列表内第一个li
+										rng.startContainer = currentLI.previousSibling;
+										rng.startOffset = currentLI.previousSibling.childNodes.length;
+										rng.collapse(true);
+										rng.select();
+										while(currentLI.firstChild){
+											currentLI.previousSibling.appendChild(currentLI.firstChild);
+										}
+										ve.dom.remove(currentLI);
+										ve.dom.event.preventDefault(e);
+									}
+								}
+							}
 						}
 					}
 				});
@@ -2799,8 +2918,9 @@
 			t.onKeyUp.addFirst(function(e){
 				if(e.keyCode != 16 && e.shiftKey){
 					//按着shift松开其他按键[方向键]这种情况不能更新range，否则会出现用户选择不全的情况
-				} else if(!e.ctrlKey && e.keyCode != 17){
-					//去除 ctrl+v等功能键冲突
+				}
+				//去除 ctrl+v，中文输入法冲突
+				else if(!e.ctrlKey && e.keyCode != 17 && e.keyCode != 229){
 					t.updateLastVERange();
 				}
 			});
@@ -2933,6 +3053,35 @@
 			});
 		}
 	});
+
+	/**
+	 * 判断选区是否在父级元素的开始或选区开始本身为LI的开始（ie下startContainer会为li），包括以下几种情况
+	 * 1,前面没有兄弟元素
+	 * 2,前面的兄弟元素为不显示元素或空文本
+	 * @param {Range} range
+	 * @return {Boolean}
+	 */
+	var isStartInParent = function(range){
+		var start = range.startContainer,
+			tmp;
+		if(range.startOffset == 0){
+			if(!range.startContainer.previousSibling ||range.startContainer.tagName == "LI"){
+				return true;
+			}else{
+				tmp = range.startContainer.previousSibling;
+				while(tmp){
+					if(!tmp.firstChild || ve.dom.getChildCount(tmp) == 0){
+						tmp = tmp.previousSibling;
+					}else{
+						return false;
+					}
+				}
+				return true;
+			}
+		}else{
+			return false;
+		}
+	};
 })(window, document, VEditor);
 /**
  * 编辑器核心命令集合
@@ -7755,6 +7904,7 @@
 (function(ve){
 	var KEYS = ve.dom.event.KEYS;
 	var UTF8_SPACE = decodeURI('%C2%A0');
+	var LINE_HEIGHT = 20;
 	var TIP_CLASS = 'veditor_mention_tips';
 	var LINK_CLASS = 'q_namecard c_tx';
 
@@ -7776,6 +7926,7 @@
 		className: 'qzone_mention_user',
 
 		friendList: [],
+		lastRegion: null,
 
 		/**
 		 * 插件初始化
@@ -7788,9 +7939,6 @@
 			}
 			var _this = this;
 			this.editor = editor;
-			this.editor.onMouseDown.add(function(){
-				_this.hideTip();
-			});
 
 			//[fix] ie下会将 abc@a这种转换成为邮箱地址,关闭IE地址自动转换功能
 			if(ve.ua.ie && ve.ua.ie >= 9){
@@ -7843,17 +7991,24 @@
 				_lastUserList = userList;
 			});
 
+			//在好友列表里面进行键盘快捷操作，如方向键和回车键
 			//这里把控制事件放入keyDown, 提前到其他类似updaterange, history前面
+			var _insertMentionChar;
 			this.editor.onKeyDown.addFirst(function(e){
+				//输入@的时候
+				if(e.keyCode == 50 && e.shiftKey){
+					_insertMentionChar = true;
+				} else {
+					_insertMentionChar = false;
+				}
+
 				//up, down, tab
-				if(e.keyCode == KEYS.UP || e.keyCode == KEYS.DOWN || e.keyCode == KEYS.TAB){
-					if(_this.inputing){
+				if(_this.inputing){
+					if(e.keyCode == KEYS.UP || e.keyCode == KEYS.DOWN || e.keyCode == KEYS.TAB){
 						_this.movePanelIndex(e.keyCode == KEYS.DOWN || e.keyCode == KEYS.TAB);
 						ve.dom.event.preventDefault(e);
 						return false;
-					}
-				} else if(e.keyCode == KEYS.RETURN){
-					if(_this.inputing){
+					} else if(e.keyCode == KEYS.RETURN){
 						var lis = _this.tip.getElementsByTagName('li');
 						var uin;
 						ve.lang.each(lis, function(li){
@@ -7875,23 +8030,23 @@
 				}
 			});
 
-			var B_CHINESE_INPUTING = false;	//[fix] safari中文输入问题(中文输入下面，如果创建bookmark的话，会导致实际输入法关闭)
-			var CHINESE_TM;
-			this.editor.onKeyDown.add(function(e){
-				if(ve.ua.safari && e.keyCode == 229){
-					B_CHINESE_INPUTING = true;
-					clearTimeout(CHINESE_TM);
-					CHINESE_TM = setTimeout(function(){
-						B_CHINESE_INPUTING = false;
-					}, 1000);
-				}
-			});
-
 			//KEY KEYS.UP
 			this.editor.onKeyUp.addLast(function(e){
+				if(_insertMentionChar || (e.keyCode == 50 && e.shiftKey)){
+					var rng = _this.editor.getVERange();
+					var bookmark = rng.createBookmark();
+					var st = bookmark['start'];
+					st.style.cssText = 'inline-block;width:1px; height:1px; padding:1px;';
+					var r = ve.dom.getRegion(st);
+					_this.lastRegion = {left:r.left, top:r.top};
+					rng.moveToBookmark(bookmark);
+					return;
+				}
+				_insertMentionChar = false;
+
 				if(!e.ctrlKey && !e.shiftKey &&
 					e.keyCode != KEYS.UP && e.keyCode != KEYS.DOWN &&
-					e.keyCode != KEYS.RETURN && e.keyCode != KEYS.TAB && e.keyCode != KEYS.ESC && !B_CHINESE_INPUTING){
+					e.keyCode != KEYS.RETURN && e.keyCode != KEYS.TAB && e.keyCode != KEYS.ESC){
 					_this.detectStr();
 				} else if(e.keyCode == KEYS.ESC){
 					_this.hideTip();
@@ -7901,6 +8056,13 @@
 			//PASTE
 			this.editor.onAfterPaste.addLast(function(){
 				_this.detectStr();
+			});
+
+			//鼠标点击，关闭tip
+			this.editor.onMouseDown.add(function(){
+				_insertMentionChar = false;
+				_this.lastRegion = null;
+				_this.hideTip();
 			});
 
 			//MOUSE UP
@@ -8073,23 +8235,34 @@
 		 * @return {[type]} [description]
 		 */
 		getCurrentCaretRegion: function(){
-			var rng = this.editor.getVERange();
-			if(rng.collapsed){
-				var bookmark = rng.createBookmark();
-				bookmark.start.style.display = 'inline-block';
-				var region = ve.dom.getRegion(bookmark.start);
-				rng.moveToBookmark(bookmark);
-				rng.select(true);
-				if(this.editor.iframeElement){
-					var frameRegion = ve.dom.getRegion(this.editor.iframeElement);
-					if(frameRegion){
-						region.top += frameRegion.top
-						region.left += frameRegion.left;
-					}
+			var region = this.lastRegion;
+			var left = 0, top = 0;
+
+			if(!region){
+				var rng = this.editor.getVERange();
+				if(rng.collapsed){
+					var bookmark = rng.createBookmark();
+					bookmark.start.style.display = 'inline-block';
+					region = ve.dom.getRegion(bookmark.start);
+					top = region.top;
+					left = region.left;
+					rng.moveToBookmark(bookmark);
+					rng.select(true);
+					this.lastRegion = region;
 				}
-				return region;
+			} else {
+				left = region.left;
+				top = region.top;
 			}
-			return {left:0, top:0, height:0, width:0};
+
+			if(this.editor.iframeElement){
+				var frameRegion = ve.dom.getRegion(this.editor.iframeElement);
+				if(frameRegion){
+					top += frameRegion.top
+					left += frameRegion.left;
+				}
+			}
+			return {left:left, top:top};
 		},
 
 		/**
@@ -8130,19 +8303,20 @@
 
 			var posInfo = this.getCurrentCaretRegion();
 			var tipSize = ve.dom.getSize(this.tip);
-			
+
 			if(window.frameElement){
 				var frameSize = ve.dom.getSize(window.frameElement);
 				if(posInfo){
 					var left = (posInfo.left + tipSize[0] > frameSize[0]) ? (frameSize[0] - tipSize[0]) : posInfo.left;
-					var top = (posInfo.top + tipSize[1] + 50 > frameSize[1]) ? (posInfo.top - tipSize[1] - 5) : (posInfo.height + posInfo.top+5);
+					var top = (posInfo.top + tipSize[1] > frameSize[1]) ? (posInfo.top - tipSize[1] - 5) : posInfo.top+LINE_HEIGHT;
+
 					this.tip.style.left = left+ "px";
 					this.tip.style.top = top+ "px";
 				}
 			} else {
 				if(posInfo){
 					this.tip.style.left = posInfo.left + "px";
-					this.tip.style.top = (posInfo.top + 20) + "px";
+					this.tip.style.top = (posInfo.top + LINE_HEIGHT) + "px";
 				}
 			}
 		},
@@ -8407,7 +8581,7 @@
 			if(!so){
 				return '';
 			} else {
-				var n = sc.childNodes[so];
+				var n = sc.childNodes[so-1];
 				while(n && n.nodeType == 3){
 					retVal = n.nodeValue + retVal;
 					n = n.previousSibling;
@@ -8447,7 +8621,8 @@
 				endIdx = _s;
 			}
 			//这里trim是为了去除 blankChar
-			return ve.string.trim(pStr + nStr.substring(0, endIdx));
+			//去除'主要是为了QQ拼音输入这种，会插入单引号
+			return ve.string.trim(pStr + nStr.substring(0, endIdx)).replace(/\'/g,'');
 		}
 		return '';
 	};
