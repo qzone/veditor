@@ -89,21 +89,13 @@
 				37:1, 38:1, 39:1, 40:1	//方向键
 			};
 
-			//输入法keydown keycode
-			var InputMethodDetectedHash = {
-				229: 1, //mac safari, ie9 chrome
-				231: 1,
-				197: 1	//opera
-			};
-			var bInputMethodOpened;
-
-			//keydown事件用于监测中文输入法
 			_this.editor.onKeyDown.addLast(function(e){
-				var rng = _this.editor.getVERange();	//选中删除情况
-				if(!rng.collapsed && !e.ctrlKey){		//去除ctrl+z, ctrl+y冲突
+				var rng = _this.editor.getVERange();
+
+				//去除选中态、ctrl+z, ctrl+y冲突、输入法冲突
+				if(!rng.collapsed && !e.ctrlKey && !_this.editor.usingIM){
 					_this.add();
 				}
-				bInputMethodOpened = !!InputMethodDetectedHash[e.keyCode];
 			});
 
 			//处理添加逻辑
@@ -112,10 +104,8 @@
 				var rng = _this.editor.getVERange();
 
 				//完成切换需要添加历史
-				//修正输入法下面的切换（这里的空白键不那么准确，需要依赖输入法的按键设置
 				//对于数字选词，这里可能存在用户【多次选词】的情况，所以该项判断被移除：/^[0-9]$/.test(String.fromCharCode(keyCode))
 				if(keyCode == 32){
-					bInputMethodOpened = false;
 					CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;
 				}
 
@@ -124,7 +114,7 @@
 					CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;
 				}
 
-				if(bInputMethodOpened){
+				if(_this.editor.usingIM){
 					CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;	//中文输入法结束时，才添加一个history
 				} else if(!ignoreKeys[keyCode] && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey ) {
 					if(++CURRENT_KEY_COUNT >= MAX_KEYDOWN_COUNT) {

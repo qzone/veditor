@@ -1675,6 +1675,9 @@
 			//IO 接口
 			t._ios = {};
 
+			//正在使用输入法（非英文）状态
+			t.usingIM = false;
+
 			//配置
 			t.conf = ve.lang.extend({
 				plugins: '',					//插件列表（格式参考具体代码）
@@ -2573,6 +2576,32 @@
 		bindEditorDomEvent: function () {
 			var t = this, w = t.getWin(), d = t.getDoc(), b = t.getBody();
 
+			//输入法keyCode监测
+			var IMK_MAP = {
+				229: true, //mac safari, ie9 chrome
+				231: true,
+				197: true,	//opera
+				0: (ve.ua.firefox ? true: false)
+			};
+
+			//输入法检测
+			ve.dom.event.add(b, 'keydown', function(e){
+				t.usingIM = !!IMK_MAP[e.keyCode];
+			});
+
+			//修正输入法下面的切换（这里的空白键不那么准确，需要依赖输入法的按键设置）
+			ve.dom.event.add(b, 'keyup', function(e){
+				if(e.keyCode == 32){
+					t.usingIM = false;
+				}
+			});
+			ve.dom.event.add(b, 'mousedown', function(){
+				t.usingIM = false;
+			});
+			t.onAfterUpdateVERange.addFirst(function(){
+				t.usingIM = false;
+			});
+
 			//批量添加鼠标、键盘事件
 			ve.lang.each(['Click', 'KeyPress', 'KeyDown', 'KeyUp', 'MouseDown', 'MouseUp', 'Select', 'Paste'], function(_ev){
 				ve.dom.event.add(d.body, _ev.toLowerCase(), function(e){
@@ -2920,7 +2949,7 @@
 					//按着shift松开其他按键[方向键]这种情况不能更新range，否则会出现用户选择不全的情况
 				}
 				//去除 ctrl+v，中文输入法冲突
-				else if(!e.ctrlKey && e.keyCode != 17 && e.keyCode != 229){
+				else if(!e.ctrlKey && e.keyCode != 17 && !t.usingIM){
 					t.updateLastVERange();
 				}
 			});
@@ -7090,21 +7119,13 @@
 				37:1, 38:1, 39:1, 40:1	//方向键
 			};
 
-			//输入法keydown keycode
-			var InputMethodDetectedHash = {
-				229: 1, //mac safari, ie9 chrome
-				231: 1,
-				197: 1	//opera
-			};
-			var bInputMethodOpened;
-
-			//keydown事件用于监测中文输入法
 			_this.editor.onKeyDown.addLast(function(e){
-				var rng = _this.editor.getVERange();	//选中删除情况
-				if(!rng.collapsed && !e.ctrlKey){		//去除ctrl+z, ctrl+y冲突
+				var rng = _this.editor.getVERange();
+
+				//去除选中态、ctrl+z, ctrl+y冲突、输入法冲突
+				if(!rng.collapsed && !e.ctrlKey && !_this.editor.usingIM){
 					_this.add();
 				}
-				bInputMethodOpened = !!InputMethodDetectedHash[e.keyCode];
 			});
 
 			//处理添加逻辑
@@ -7113,10 +7134,8 @@
 				var rng = _this.editor.getVERange();
 
 				//完成切换需要添加历史
-				//修正输入法下面的切换（这里的空白键不那么准确，需要依赖输入法的按键设置
 				//对于数字选词，这里可能存在用户【多次选词】的情况，所以该项判断被移除：/^[0-9]$/.test(String.fromCharCode(keyCode))
 				if(keyCode == 32){
-					bInputMethodOpened = false;
 					CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;
 				}
 
@@ -7125,7 +7144,7 @@
 					CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;
 				}
 
-				if(bInputMethodOpened){
+				if(_this.editor.usingIM){
 					CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;	//中文输入法结束时，才添加一个history
 				} else if(!ignoreKeys[keyCode] && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey ) {
 					if(++CURRENT_KEY_COUNT >= MAX_KEYDOWN_COUNT) {
