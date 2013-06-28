@@ -11,7 +11,7 @@
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/event.js     loaded... 3432 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/net.js     loaded... 4492 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/string.js     loaded... 1035 byte. 
->> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editor.js     loaded... 38254 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editor.js     loaded... 38888 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editorcommands.js     loaded... 2576 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/range.js     loaded... 58615 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/plugin.js     loaded... 1299 byte. 
@@ -28,7 +28,7 @@
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/ui/simplepopup.js     loaded... 2395 byte. 
 
 merging target files... 
-target file size: 233418 byte. 
+target file size: 234052 byte. 
 ====================================================== 
  
 done. 

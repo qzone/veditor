@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+	<title>浏览器支持测试</title>
+	<script>
+		var DOMAIN = 'qq.com';
+		var ID = 'test';
+		document.domain = DOMAIN;
+	</script>
+	<script src="./../release/ve.standalone.js"></script>
+</head>
+<body>
+	<div id="con"></div>
+	<script>
+		var iframeHTML = (ve.ua.ie && ve.ua.ie < 9 ? '': '<!DOCTYPE html>');
+		var $ = document.getElementById.call(document);
+
+		iframeHTML += '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />';
+
+		//设置了domain
+		var frameUrl = 'javascript:;';
+		if (ve.ua.ie){
+			frameUrl = 'javascript:(function(){document.open();document.domain="' + DOMAIN + '";document.write(top.iframeHTML);document.close(); initIframe();})()';
+		}
+		iframeHTML += '<script type="text/javascript">document.domain = "' + DOMAIN + '";</script>';
+		iframeHTML += '</head><body></body></html>';
+
+		//创建<iframe>
+		var iframeElement = ve.dom.create('iframe', {
+			id: ID,
+			src: frameUrl,
+			frameBorder: '0',
+			allowTransparency: 'true',
+			style: {
+				width : '100%',
+				height : this.conf.height ? this.conf.height+'px' : 'auto'
+			}
+		});
+		ve.dom.event.add(iframeElement, 'load', function(){	//加载事件必须优先于append操作
+			alert('ifame loaded');
+		});
+
+
+	</script>
+</body>
+</html>

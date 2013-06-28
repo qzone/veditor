@@ -1,3 +1,13 @@
 VEditor 文档
 欢迎使用 VEditor
-更多详尽文档可参阅 http://www.github.com/qzone/veditor/
+
+QZONE 在线WEB编辑器
+目录结构：
+./demo		demo例子
+./release 	文件发布目录
+./doc 		相关文档资源
+./build		打包发布工具
+./source 	源代码目录
+./test 		测试工具目录(建设中)
+
+更多详尽文档可参阅 http://www.github.com/qzone/veditor/ 或咨询 sasumi@qq.com

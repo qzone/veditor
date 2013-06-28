@@ -13388,7 +13388,6 @@
  */
 (function(ve){
 	var LOGIN_UIN = QZONE.FP._t.g_iLoginUin,		//登录用户UIN
-		IS_ALPHA = /^(361591257|1459219|370606334|764920671|1411721128|906714072|95440569|22223420)$/.test(LOGIN_UIN),			//放量
 		BLOG_TYPE = 7,								//传输到私密相册
 		PLUGIN_INSTALL_URL = 'http://mail.qq.com/cgi-bin/readtemplate?t=browser_addon&check=false',
 
@@ -13406,6 +13405,9 @@
 		UPLOAD_TIMER,					//上传计时器
 		SW_QUEUE_UPLOADING = false,		//队列还在上床中
 		QUEUE_UPLOAD_HASH = {};			//队列
+
+	var uin = LOGIN_UIN+'';
+	var IS_RELEASE = QZONE.FP.isAlphaUser() || uin.substring(uin.length-1,1) == 0;		//放量 10%
 
 	ve.lang.Class('VEditor.plugin.ScreenShot', {
 		editor: null,						//编辑器对象
@@ -13524,7 +13526,7 @@
 		 * 上传temp中的文件
 		 **/
 		uploadTempFile: function(){
-			if(!IS_ALPHA){
+			if(!IS_RELEASE){
 				return;
 			}
 
@@ -13535,7 +13537,7 @@
 			}
 
 			//ie报错，所以和这里需要try
-			if(verComp('1.0.1.54', uploader.Version) < 0){
+			if(verComp(uploader.Version, '1.0.1.54') < 0){
 				this.editor.showStatusbar('安装最新版截屏插件可以自动上传word里面的图片，<a href="'+PLUGIN_INSTALL_URL+'" target="_blank">请点击这里进行安装</a>');
 				return;
 			}

@@ -9,7 +9,7 @@
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/event.js     loaded... 3432 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/net.js     loaded... 4492 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/helper/string.js     loaded... 1035 byte. 
->> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editor.js     loaded... 38254 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editor.js     loaded... 38888 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/editorcommands.js     loaded... 2576 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/range.js     loaded... 58615 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/core/plugin.js     loaded... 1299 byte. 
@@ -25,7 +25,7 @@
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/view/def/view.js     loaded... 2349 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/linetag/plugin.js     loaded... 3230 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/list/plugin.js     loaded... 20551 byte. 
->> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/history/plugin.js     loaded... 7629 byte. 
+>> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/history/plugin.js     loaded... 7328 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/font/plugin.js     loaded... 6508 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/textjustify/plugin.js     loaded... 7069 byte. 
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/qzonemedia/plugin.js     loaded... 2862 byte. 
@@ -40,7 +40,7 @@
 >> E:\htdocs\qzone_proj\trunk\veditor\build\../source/plugins/glowfont/plugin.js     loaded... 3772 byte. 
 
 merging target files... 
-target file size: 294748 byte. 
+target file size: 295081 byte. 
 ====================================================== 
  
 done. 

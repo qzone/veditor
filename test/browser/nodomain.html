@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+	<title>浏览器支持测试</title>
+	<script>
+		var ID = 'test';
+		var $ = document.getElementById.call(document);
+	</script>
+	<script src="./../release/ve.standalone.js"></script>
+</head>
+<body>
+	<div id="con"></div>
+	<script>
+		var iframeHTML = (ve.ua.ie && ve.ua.ie < 9 ? '': '<!DOCTYPE html>');
+		iframeHTML += '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />';
+
+		//设置了domain
+		var frameUrl = 'javascript:;';
+		iframeHTML += '</head><body></body></html>';
+
+		//创建<iframe>
+		var iframeElement = ve.dom.create('iframe', {
+			id: ID,
+			src: frameUrl,
+			frameBorder: '0',
+			allowTransparency: 'true',
+			style: {
+				width : '100%',
+				height : 'auto'
+			}
+		});
+		ve.dom.event.add(iframeElement, 'load', function(){	//加载事件必须优先于append操作
+			alert('ifame loaded');
+		});
+
+		$('con').appendChild(iframeElement);
+
+
+	</script>
+</body>
+</html>
