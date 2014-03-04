@@ -112,6 +112,11 @@
 			return BASE_PATH + (u||'');
 		},
 
+		ERROR: {
+			CRASH: 999,
+			NET_RESOURCE: 999
+		},
+
 		plugin: {},
 		version: '2.03',
 		blankChar: '\uFEFF',
@@ -119,7 +124,6 @@
 		caretChar: '\u2009',
 		ui: {},
 		dom: {},
-
 
 		/**
 		 * 添加编辑器实例
@@ -144,7 +148,7 @@
 		isHelperNode: function(node){
 			return node && node.nodeType == 3 &&
 				(new RegExp('^'+this.blankChar+'$').test(node.nodeValue) ||
-					new RegExp('^'+this.caretChar+'$').test(node.nodeValue));
+				new RegExp('^'+this.caretChar+'$').test(node.nodeValue));
 		},
 
 		/**
@@ -156,9 +160,17 @@
 			var editor = new VEditor.Editor(conf);
 			this.add(editor);
 
+			//这里通过timeout来强制某些浏览器初始化核心的时候采用了同步方式初始化，
+			//导致外部逻辑代码（形如：var ed = VE.create(); ed.onInitComplete.add()）事件绑定失效
+			//正规做法应该是 var ed = new VE(); ed.init(); 当前create方法两步都做了，因此这里需要强制异步
 			setTimeout(function(){
-			editor.init();
-			}, 100);
+				try {
+					console.log('VE init start');
+					editor.init();
+				} catch(ex){
+					editor.exception(ex.toString(), (ex['code'] || VEditor.ERROR.CRASH), ex['data'], true);
+				}
+			},0);
 
 			return editor;
 		}
@@ -167,6 +179,13 @@
 	//占用命名空间
 	//@deprecate 这里由于旧版的使用的命名空间为veEditor，所以暂时适配
 	window.veEditor = window.VEditor = VEditor;
+
+	//统计，不需要的开发同学可以注释掉
+	setTimeout(function(){
+		var img = new Image();
+		var h = location.hostname.replace(/\./g, '_');
+		img.src = 'http://pinghot.qq.com/pingd?dm=blog.qzone.qq.com.hot&url=/BlogEditer&tt=-&hottag=BlogEditer.veditorpv.'+h+'&hotx=9999&hoty=9999&adtag=-&rand='+Math.random()
+	}, 5000);
 }) (window, document);
 (function(window, document, ve, undefined) {
 	//原型继承需要处理的字段
@@ -212,6 +231,39 @@
 				}
 			}
 			return 1;
+		},
+
+		/**
+		 * 等比缩放
+		 * @param  {Number} width     当前宽度
+		 * @param  {Number} height    当前高度
+		 * @param  {Number} maxWidth  最大宽度
+		 * @param  {Number} maxHeight 最大高度
+		 * @return {Array}           [宽度，高度]
+		 */
+		resize: function(width, height, maxWidth, maxHeight){
+			var w,h;
+			if(!maxWidth){
+				h = Math.min(height, maxHeight);
+				w = (h/height)*width;
+			}
+			else if(!maxHeight){
+				w = Math.min(width, maxWidth);
+				h = (w/width)*height;
+			}
+			else {
+				var r1 = height/width, r2 = maxHeight/maxWidth;
+				if(r1 > r2){
+					h = Math.min(height, maxHeight);
+					w = width*h/height;
+				} else {
+					w = Math.min(width, maxWidth);
+					h = height*w/width;
+				}
+			}
+			w = parseInt(w, 10);
+			h = parseInt(h, 10);
+			return [w,h];
 		},
 
 		arrayIndex: function(arr, item, start) {
@@ -1041,6 +1093,9 @@
 		},
 
 		contains: function(container, child){
+			if(container.nodeType == 3){
+				return false;
+			}
 			return container.contains ? container != child && container.contains(child) :
 				!!(container.compareDocumentPosition(child) & 16);
 		},
@@ -1549,6 +1604,42 @@
 				}
 			}
 			return  2;
+		},
+
+		/**
+		 * 加载图片队列
+		 * @param {Array} imgSrcList
+		 * @param {Function} doneCb	完成回调（包括失败）
+		 **/
+		loadImageQueue: function(imgSrcList, doneCb){
+			var len = imgSrcList.length;
+			var count = 0;
+			var infoList = {};
+
+			var allDone = function(){
+				var result = [];
+				ve.lang.each(imgSrcList, function(item, index){
+					result.push(infoList[item]);
+				});
+				doneCb(result);
+			};
+
+			ve.lang.each(imgSrcList, function(src){
+				infoList[src] = {width:null, height:null, src:src};
+				var img = new Image();
+				img.onload = function(){
+					infoList[this.src] = {width: this.width, height: this.height, src:this.src};
+					if(++count == len){
+						allDone();
+					}
+				};
+				img.onerror = function(){
+					if(++count == len){
+						allDone();
+					}
+				};
+				img.src = src;
+			});
 		},
 
         /**
@@ -2906,7 +2997,7 @@
 		s.setAttribute('charset', option.charset);
 
 		ve.dom.event.add(s, ve.ua.ie && ve.ua.ie < 10 ? 'readystatechange': 'load', function(){
-			if(ve.ua.ie && s.readyState != 'loaded' && s.readyState != 'complete'){
+			if(ve.ua.ie && s.readyState != 'loaded' && s.readyState != 'complete' && ve.ua.ie != 11){
 				return;
 			}
 			setTimeout(function(){
@@ -2920,8 +3011,8 @@
 			sucCb();
 			**/
 		});
-		s.src = option.src;
 		(doc.getElementsByTagName('head')[0] || doc.body).appendChild(s);
+		s.src = option.src;
 	};
 
 	/**
@@ -2977,6 +3068,13 @@
 		(doc.getElementsByTagName('head')[0] || doc.body).appendChild(css);
 	};
 
+	var getParameter = function(name, str){
+		var r = new RegExp("(\\?|#|&)" + name + "=([^&#]*)(&|#|$)");
+		var m = (str || location.href).match(r);
+		return (!m?"":m[2]);
+	};
+
+	ve.net.getParameter = getParameter;
 	ve.net.loadScript = loadScript;
 	ve.net.loadCss = loadCss;
 })(VEditor);
@@ -3034,7 +3132,7 @@
 		}
 	};
 })(VEditor);
-(function(window, document, ve) {
+(function(ve) {
 	var EXT_FILES_LOADED = false;
 	var EDITOR_GUID = 0;
 
@@ -3047,6 +3145,9 @@
 		Editor: function (conf) {
 			var t = this;
 			t.id = conf.id || ('veditor'+(++EDITOR_GUID));
+
+			//启动事件
+			t.__startup_time__ = (new Date()).getTime();
 
 			//快捷键map
 			t._shortcuts = [];
@@ -3061,11 +3162,13 @@
 			t.conf = ve.lang.extend({
 				plugins: '',					//插件列表（格式参考具体代码）
 
-				container: '',					//容器，该配置项与下方三个容器互斥，如果container为一个form元素的话， 下方的3个容器为container父元素
+				container: '',					//容器，该配置项与下方三个容器互斥，如果container为一个textarea元素的话， 下方的3个容器为container父元素
 
 				toolbarContainer: '',			//工具条容器!
-				iframeContainer: '',			//iframe容器!
+				iframeContainer: '',			//iframe容器!	如果设置iframe为textarea，则iframeContainer取该textarea父容器，并关联该textarea
 				statusbarContainer: '',			//状态条容器
+
+				relateContainer: '',			//关联容器（支持textarea或可编辑div等），这里只是单向关联，编辑器数据变化会更新该容器，反之，该容器变化不会更新到编辑器
 
 				placeholder: '',				//placeholder，仅检测文字命中部分，不对其他元素进行校验，
 												//也就是说，如果placeholder = '<div><b>text</b></div>'；那仅校验 text
@@ -3084,69 +3187,90 @@
 				domain: ve.domain || null		//域名
 			}, conf);
 
-			ve.lang.each(['toolbarContainer','statusbarContainer', 'iframeContainer', 'container'], function(n) {
+			ve.lang.each(['toolbarContainer','statusbarContainer', 'relateContainer', 'iframeContainer', 'container'], function(n) {
 				if(t.conf[n]){
 					t.conf[n] = ve.dom.get(t.conf[n]);
 				}
 			});
 
-			//支持表单形式
-			t._useForm = false;
+			//支持 单个表单形式
 			if(t.conf.container){
-				if(t.conf.container.tagName == 'INPUT' || t.conf.container.tagName == 'TEXTAREA'){
-					t.conf.container.style.display = 'none';
-					t._useForm = true;
-					t.conf.placeholder = t.conf.placeholder || t.conf.container.getAttribute('placeholder');
+				if(t.conf.container.tagName == 'TEXTAREA'){
+					t.conf.relateContainer = t.conf.container;
+					t.conf.container = t.conf.container.parentNode;
 				}
-				t.conf.toolbarContainer = t.conf.iframeContainer = t.conf.statusbarContainer = t._useForm ? t.conf.container.parentNode : t.conf.container;
+				t.conf.toolbarContainer = t.conf.iframeContainer = t.conf.statusbarContainer = t.conf.container;
 			}
 
-			//触发事件
-			ve.lang.each(['onInit',
-				'onSelect',
-				'onKeyPress',
-				'onKeyDown',
-				'onKeyUp',
-				'onMouseOver',
-				'onMouseDown',
-				'onMouseUp',
-				'onClick',
-				'onBeforeExecCommand',
-				'onAfterExecCommand',
-				'onInitComplete',
-				'onSelectContent',
-				'onUIRendered',
-				'onBlur',
-				'onFocus',
-				'onBeforeOpenListBox',
-				'onBeforeGetContent',
-				'onGetContent',
-				'onBeforeSetContent',
-				'onSetContent',
-				'onAfterSetContent',
-				'onAfterClearContent',
-				'onPaste',
-				'onAfterPaste',
-				'onResize',
-				'onPluginsInited',
-				'onIframeLoaded',
-				'onAfterUpdateVERange',
-				'onAfterUpdateVERangeLazy',		//懒惰触发事件
-				'onNodeRemoved'], function(n) {
-				t[n] = new ve.EventManager(t);
-			});
+			//支持指定表单作为内容区域形式
+			if(t.conf.iframeContainer.tagName == 'TEXTAREA'){
+				t.conf.relateContainer = t.conf.iframeContainer;
+				t.conf.iframeContainer = t.conf.iframeContainer.parentNode;
+			}
 
-			if(!this.conf.toolbarContainer || !this.conf.iframeContainer){
+			//指定状态条
+			t.conf.statusbarContainer = t.conf.statusbarContainer || t.conf.iframeContainer;
+
+			if(!t.conf.toolbarContainer || !t.conf.iframeContainer){
 				throw('NEED CONTAINER SPECIFIED');
 			}
-			this.conf.statusbarContainer = this.conf.statusbarContainer || this.conf.iframeContainer;
+
+			//关联textarea
+			if(t.conf.relateContainer){
+				t.conf.placeholder = t.conf.placeholder || t.conf.relateContainer.getAttribute('placeholder');
+			}
+
+			//copy容器到editor下
+			ve.lang.each(['toolbarContainer','statusbarContainer', 'relateContainer', 'iframeContainer', 'container'], function(n){
+				t[n] = t.conf[n];
+			});
+
+			//触发事件
+			ve.lang.each([
+				'onSelect',					//选区选择
+				'onKeyPress',				//按键按下
+				'onKeyDown',				//按键按下
+				'onKeyUp',					//按键松开
+				'onMouseOver',				//鼠标over
+				'onMouseDown',				//鼠标按下
+				'onMouseUp',				//鼠标松开
+				'onClick',					//点击
+				'onPaste',					//粘贴事件（支持中断）
+				'onAfterPaste',				//粘贴之后
+
+				'onSelectContent',			//选择内容
+				'onBlur',					//失焦
+				'onFocus',					//聚焦
+				'onBeforeOpenListBox',		//菜单打开
+				'onResize',					//调整大小
+
+				'onBeforeGetContent',		//获取内容之前
+				'onGetContent',				//获取内容（支持中断）
+				'onBeforeSetContent',		//设置内容之前
+				'onSetContent',				//设置内容（支持中断）
+				'onAfterSetContent',		//设置内容之后
+				'onAfterClearContent',		//清除内容之后
+
+				'onPluginsInited',			//插件初始化完成
+				'onIframeInited',			//iframe初始化完成
+				'onInitComplete',			//初始化完成
+
+				'onBeforeExecCommand',		//执行命令之前
+				'onAfterExecCommand',		//执行命令之后
+				'onAfterUpdateVERange',		//更新Range之后
+				'onAfterUpdateVERangeLazy',	//更新Range懒惰触发事件
+
+				'onError'],					//报错
+				function(n) {
+				t[n] = new ve.EventManager(t);
+			});
 		},
 
 		/**
 		 * 加载额外的文件，包括适配器、视图、插件
 		 * @param {function} callback
 		 **/
-		loadExtFiles: function(callback) {
+		_loadExtFiles: function(callback) {
 			var _this = this,
 				fileList = [];
 
@@ -3175,6 +3299,7 @@
 				});
 			}
 
+			console.log('VE _loadExtFiles:', fileList);
 			if(fileList.length){
 				ve.net.loadScript(fileList, callback);
 			} else {
@@ -3198,11 +3323,10 @@
 					if (matches[3]) {
 						ppc = ppc.concat(matches[3].split('+'));
 						url[matches[1].replace(/\(/g, '') || matches[3]] = matches[3] || matches[1];
-					}
-					else {
+					} else {
 						ppc.push(n);
 						url[n] = n;
-				}
+					}
 				});
 			}
 			ve.lang.each(url, function (n, i) {
@@ -3238,13 +3362,16 @@
 
 			//预加载文件
 			if(!EXT_FILES_LOADED){
-				t.loadExtFiles(function(){
+				console.log('VE init --> no ext files loaded');
+				t._loadExtFiles(function(){
 					EXT_FILES_LOADED = true;
+					console.log('VE init --> ext files loaded');
 					t.init();
 				});
 				return;
 			}
 
+			console.log('VE view get');
 			//初始化视图管理器
 			var view = ve.viewManager.get(this.conf.viewer);
 			if (!view){
@@ -3254,67 +3381,182 @@
 			this.viewControl.init(this, this.conf.viewerurl || this.conf.viewer);
 			this.editorcommands = new ve.EditorCommands(this);
 
-			//创建iframe
-			this.createIframe();
 
+			//渲染toolbar放入核心加载成功之后，
+			//避免核心初始化失败，还存在工具条的情况
+			var _crashed, _loading = true;
+			this.onError.add(function(msg, code){
+				console.log('VE onError', msg, code);
+				if(code == VEditor.ERROR.CRASH){
+					_crashed = true;
+				}
+			});
+
+			//使用表单提交数据
+			//这里只能处理换行情况，其他的处理不了，因为如果处理，就意味着html标记信息将被丢失
+			if(t.conf.relateContainer){
+				console.log('VE relateContainer setted');
+				var _isTextarea = t.conf.relateContainer.tagName == 'TEXTAREA';
+				var _set = function(html){
+					if(_isTextarea){
+						t.conf.relateContainer.value = _toStr(html);
+					} else {
+						t.conf.relateContainer.innerHTML = html;
+					}
+				};
+				var _get = function(){
+					if(_isTextarea){
+						return _toHtml(t.conf.relateContainer.value);
+					} else {
+						return t.conf.relateContainer.innerHTML;
+					}
+				};
+				var _toStr = function(html){
+					return html.replace(/<br[^>]*>/g, "\r\n");
+				};
+				var _toHtml = function(str){
+					return str.replace(/\r\n/g, "\n").replace(/\n/g, '<br/>');
+				};
+
+				this.onInitComplete.addFirst(function(){
+					_loading = false;
+					var s = _get();
+					if(s){
+						t.setContent({content:s});
+					}
+				});
+				this.onAfterUpdateVERangeLazy.add(function(){_set(t.getContent());});
+				this.onSetContent.add(function(html){_set(html);});
+				this.onGetContent.addLast(function(html){
+					if(_crashed || _loading){
+						html = _get();
+					}
+					return html;
+				}, true);
+			}
+
+			console.log('VE base layout render');
 			//渲染布局
 			this.viewControl.renderBaseLayout();
 
+			//未崩溃情况下，才进行插件初始化、工具条渲染等操作
+			this.onIframeInited.add(function(){
+				if(!_crashed){
+					t._bindEditorDomEvent();
+
+					//启动插件，这样插件里面的初始化方法可以提供按钮
+					t._launchPlugins();
+
+					//渲染工具条（按钮）
+					t.viewControl.renderToolbar();
+				}
+			});
+
+			//创建iframe
+			this._createIframe();
+
 			if (!ve.ua.ie || !this.conf.domain){
-				t.initIframe();
+				this._initIframe();
 			}
 
-			this._launchPlugins();
-
-			//渲染toolbar
-			this.viewControl.renderToolbar();
-			this.onUIRendered.fire();
-
-			if(t._iframeInited){
+			if(this._iframeInited){
 				//console.log('主脚本检测到t._iframeInited, 执行t._fireInitComplete');
-				t._fireInitComplete();
+				this._fireInitComplete();
 			} else {
 				//console.log('主脚本检测到iframe还没有加载完');
-				t._needFireInitCompleteInInitIframe = true;
+				this._needFireInitCompleteInInitIframe = true;
 			}
-			return t;
+			return this;
+		},
+
+		/**
+		 * 读取编辑器配置
+		 * @param  {String} key
+		 * @param  {String} scope 上下文，可以用插件名称来规避冲突
+		 * @return {Mix}
+		 */
+		getConfig: function(key, scope){
+			if(scope){
+				if(!this.conf[scope]){
+					return undefined;
+				}
+				return this.conf[scope][key];
+			}
+			return this.conf[key];
+		},
+
+		/**
+		 * 设置配置
+		 * @param  {String} key
+		 * @param  {String} val
+		 * @param  {String} scope 上下文，可以用插件名称来规避冲突
+		 */
+		setConfig: function(key, val, scope){
+			if(scope){
+				if(!this.conf[scope]){
+					this.conf[scope] = {};
+				}
+				this.conf[scope][key] = val;
+			}
+			this.conf[key] = val;
+		},
+
+		/**
+		 * 异常处理
+		 * @param  {String} msg		异常message
+		 * @param  {String} code 	异常code
+ 		 * @param  {Mix} data		数据
+		 */
+		exception: function(msg, code, data){
+			var s = new String(msg);
+			s.code = code;
+			s.data = data;
+			this.onError.fire(this, msg, code, data);
+			window.console && window.console.log(msg, code, data);
 		},
 
 		/**
 		 * 创建编辑器iframe
 		 * @deprecate 这里区分了domain情况和对ie等浏览器兼容处理
 		 **/
-		createIframe: function(){
+		_createIframe: function(){
+			console.log('VE start create IFRAME');
 			var _this = this;
 			this.iframeHTML = (ve.ua.ie && ve.ua.ie < 9 ? '': '<!DOCTYPE html>');
 			this.iframeHTML += '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />';
 
+
+			console.log('VE config domain:', this.conf.domain);
 			//设置了domain
 			var frameUrl = 'javascript:;';
 			if (this.conf.domain) {
 				if (ve.ua.ie){
-					frameUrl = 'javascript:(function(){document.open();document.domain="' + this.conf.domain + '";var ed = window.parent.VEditor.get("' + this.id + '");document.write(ed.iframeHTML);document.close();ed.initIframe();})()';
+					frameUrl = 'javascript:(function(){document.open();document.domain="' + this.conf.domain + '";var ed = window.parent.VEditor.get("' + this.id + '");document.write(ed.iframeHTML);document.close();ed._initIframe();})()';
 				}
 				this.iframeHTML += '<script type="text/javascript">document.domain = "' + this.conf.domain + '";</script>';
 			}
 			this.iframeHTML += '</head><body></body></html>';
 
+			console.log('VE frameUrl:', frameUrl);
+			console.log('VE iframeHTML:', this.iframeHTML);
+
 			//创建<iframe>
 			this.iframeElement = ve.dom.create('iframe', {
 				id: this.id + '_Iframe',
-				src: frameUrl,
+				//src: frameUrl,
 				frameBorder: '0',
 				allowTransparency: 'true',
 				style: {
-					width : '100%',
-					height : this.conf.height ? this.conf.height+'px' : 'auto'
+					width: '100%',
+					height: this.conf.height ? this.conf.height+'px' : 'auto'
 				}
 			});
-			ve.dom.event.add(this.iframeElement, 'load', function(){	//加载事件必须优先于append操作
-				_this.onIframeLoaded.fire(_this.iframeElement);
-			});
-			this.iframeContainer = ve.dom.create('div', {'class': 'veIframeContainer editor_iframe_container_' + this.id, 'style': {width: this.conf.width}});
-			this.iframeContainer.appendChild(this.iframeElement);
+			var icWrap = ve.dom.create('div', {'class': 'veIframeContainer editor_iframe_container_' + this.id, 'style': {width: this.conf.width}});
+			icWrap.appendChild(this.iframeElement);
+			this.iframeContainer.appendChild(icWrap);
+			this.iframeElement.src = frameUrl;
+
+			//this.iframeElement.src = '';
 		},
 
 		_initCompleteFired: false,
@@ -3329,74 +3571,72 @@
 				//或者可以考虑这个t.onInitComplete.add可以用triggle代替
 				//console.log('命中fire逻辑，延时100ms后fire');
 				t._initCompleteFired = true;
+
 				setTimeout(function(){
-					t.onInitComplete.fire(t, t);
-				}, 100);
+					var tm = (new Date().getTime()) - t.__startup_time__;
+					t.onInitComplete.fire(t, t, tm);
+				}, 0);
 			}
 		},
 
 		//是否需要在initIframe里面执行initComplete事件
 		_needFireInitCompleteInInitIframe: false,
 		_iframeInited: false,
-		initIframe: function () {
+		_initIframe: function () {
+			console.log('VE _iframeInited');
 			if(this._iframeInited){
 				return;
 			}
+			var t = this, doc;
 
-			var t = this, d;
 			try {
-				d = this.getDoc();
-			} catch(ex){
-				throw('IE IFRAME访问没有权限');
-			}
+				console.log('VE start to open doc');
+				doc = this.getDoc();
 
-			// if(!d.body){
-			// 	console.log('d.body 不命中', d.body);
-			// 	window.setTimeout(function(){t.initIframe();}, 1000);
-			// 	return;
-			// }
+				//[chrome] 关闭该选项会导致app页面有时候不触发window.unload事件
+				//估计旧版的chrome不会有这个问题
+				doc.open();
+				doc.write(this.iframeHTML);
+				doc.close();
 
-			//chrome在这里有bug，关闭该选项会导致app页面有时候不触发window.unload事件
-			//估计旧版的chrome不会有这个问题
-			d.open();
-			d.write(t.iframeHTML);
-			d.close();
-
-			if(ve.ua.ie){
-                d.body.disabled = true;
-                d.body.contentEditable = true;
-                d.body.disabled = false;
-			} else {
-				d.body.contentEditable = true;
-                d.body.spellcheck = false;
-			}
-
-			if(this.conf.height){
-				d.body.style.height = t.conf.height + 'px';
-			}
-
-			d.body.innerHTML = this.getEmptyHelperHtml();
-			t.bindEditorDomEvent();
-			t.onInit.fire();
-
-			if (t.conf.styleWithCSS) {
-				try {
-					d.execCommand("styleWithCSS", 0, true);
-				} catch (e) {
-					try {
-						d.execCommand("useCSS", 0, true);
-					} catch (e) {}
+				if(ve.ua.ie){
+	                doc.body.disabled = true;
+	                doc.body.contentEditable = true;
+	                doc.body.disabled = false;
+				} else {
+					doc.body.contentEditable = true;
+	                doc.body.spellcheck = false;
 				}
+
+				console.log('VE doc opened');
+
+				if(this.conf.height){
+					doc.body.style.height = this.conf.height + 'px';
+				}
+				if (this.conf.styleWithCSS) {
+					try {
+						doc.execCommand("styleWithCSS", 0, true);
+					} catch (e) {
+						try {
+							doc.execCommand("useCSS", 0, true);
+						} catch (e) {}
+					}
+				}
+				if(this.conf.editorCss){
+					ve.dom.insertStyleSheet(null, this.conf.editorCss, doc);
+				}
+				doc.body.innerHTML = this.conf.placeholder || this.getEmptyHelperHtml();
+			} catch(ex){
+				t.exception('iframe没有访问权限', VEditor.ERROR.CRASH);
 			}
 
-			if(t.conf.editorCss){
-				ve.dom.insertStyleSheet(null, t.conf.editorCss, d);
-			}
+			console.log('VE iframe inited');
 
-			t._iframeInited = true;
+			this._iframeInited = true;
+			this.onIframeInited.fire(this.iframeElement);	//iframe初始化完成
 
-			if(t._needFireInitCompleteInInitIframe){
-				t._fireInitComplete();
+			if(this._needFireInitCompleteInInitIframe){
+				this._fireInitComplete();
 			}
 		},
 
@@ -3503,9 +3743,9 @@
 
 			if(typeof(cmd) == 'function'){
 				fn = cmd;
-			} else if(this.editorcommands.hasCommand(cmd)){
+			} else if(this.hasCommand(cmd)){
 				fn = function(){
-					_this.editorcommands.execCommand(cmd, false);
+					_this.execCommand(cmd, false);
 					return false;
 				}
 			} else {
@@ -3640,6 +3880,7 @@
 			var _this = this;
 
 			if(!rng){
+				this.getWin().focus();
 				rng = new ve.Range(this.getWin(), this.getDoc());
 				rng.convertBrowserRange();
 			}
@@ -3708,7 +3949,42 @@
 			}
 
 			//执行命令
-			this.editorcommands.execCommand('insertHtml', params.content);
+			this.execCommand('insertHtml', params.content);
+		},
+
+		/**
+		 * 插图
+		 * @deprecated 如果提供最大宽度或高度，图片将按照等比方式压缩
+		 * @param  {Object} imgData   图片属性信息 imgData.src 为必须内容
+		 * @param  {Number} maxWidth  最大宽度
+		 * @param  {Number} maxHeight 最大高度
+		 * @param {Function} callback 图片插入完成回调
+		 */
+		insertImage: function(imgData, maxWidth, maxHeight, callback){
+			var _this = this;
+			var _ins = function(data){
+				var html = '', attrs = [];
+				for(var i in data){
+					attrs.push(i+'="'+data[i]+'"');
+				}
+				html = attrs.join(' ');
+				_this.insertHtml({content:'<img '+html+'/>'});
+				setTimeout(function(){
+					_this.resize();
+					callback && callback();
+				}, 10);
+			};
+
+			if((maxWidth || maxHeight) && !(imgData.width || imgData.height)){
+				ve.dom.loadImageQueue([imgData.src], function(itemList){
+					var reg = ve.lang.resize(itemList[0].width, itemList[0].height, maxWidth, maxHeight);
+					imgData.width = reg[0];
+					imgData.height = reg[1];
+					_ins(imgData);
+				});
+			} else {
+				_ins(imgData);
+			}
 		},
 
 		/**
@@ -3758,10 +4034,8 @@
 		getContent: function () {
 			this.onBeforeGetContent.fire(this);
 			var html = this.getBody().innerHTML || '';
-			if(html){
-				html = this.onGetContent.fire(this, html);
-				html = html.replace(ve.fillCharReg, '');
-			}
+			html = this.onGetContent.fire(this, html) || '';
+			html = html.replace(ve.fillCharReg, '') || '';
 			return html;
 		},
 
@@ -3790,7 +4064,7 @@
 				s = rng.startContainer,
 				doc = this.getDoc();
 
-			if(s.nodeType == 1){
+			if(s.parentNode && s.nodeType == 1){
 				var _psNode;
 				_psNode = doc.createElement('span');
 				_psNode.style.cssText = 'display:inline-block; height:1px;width:1px;';
@@ -3807,7 +4081,7 @@
 				var region = ve.dom.getRegion(_psNode);
 				ve.dom.remove(_psNode);
 				retVal = region.top + region.height;
-			} else if(s.nodeType == 3){
+			} else if(s.parentNode &&s.nodeType == 3){
 				var _psNode = doc.createElement('span');
 					ve.dom.insertBefore(_psNode, s);
 					_psNode.style.cssText = 'display:inline-block; height:1px;width:1px;';
@@ -3952,7 +4226,7 @@
 		/**
 		 * 绑定编辑器相关的事件
 		 */
-		bindEditorDomEvent: function () {
+		_bindEditorDomEvent: function () {
 			var t = this, w = t.getWin(), d = t.getDoc(), b = t.getBody();
 
 			//输入法keyCode监测
@@ -3968,16 +4242,7 @@
 				t.usingIM = !!IMK_MAP[e.keyCode];
 			});
 
-			//修正输入法下面的切换（这里的空白键不那么准确，需要依赖输入法的按键设置）
-			ve.dom.event.add(b, 'keyup', function(e){
-				if(e.keyCode == 32){
-					t.usingIM = false;
-				}
-			});
 			ve.dom.event.add(b, 'mousedown', function(){
-				t.usingIM = false;
-			});
-			t.onAfterUpdateVERange.addFirst(function(){
 				t.usingIM = false;
 			});
 
@@ -3998,13 +4263,6 @@
 			if (t.conf.autoAdjust) {
 				t.onAfterUpdateVERangeLazy.add(function(){
 					t.resize();
-				});
-			}
-
-			//使用表单提交数据
-			if(t._useForm){
-				t.onAfterUpdateVERangeLazy.add(function(){
-					t.conf.container.value = t.getContent();
 				});
 			}
 
@@ -4095,7 +4353,6 @@
 									}catch (ev){
 										currentLI = '';
 									}
-									//console.log(currentLI.innerHTML);
 									if(currentLI && currentLI.previousSibling && currentLI.previousSibling.tagName == 'LI'){ //非列表内第一个li
 										rng.startContainer = currentLI.previousSibling;
 										rng.startOffset = currentLI.previousSibling.childNodes.length;
@@ -4328,7 +4585,7 @@
 					//按着shift松开其他按键[方向键]这种情况不能更新range，否则会出现用户选择不全的情况
 				}
 				//去除 ctrl+v，中文输入法冲突
-				else if(!e.ctrlKey && e.keyCode != 17 && !t.usingIM){
+				else if(!e.ctrlKey && e.keyCode != 17 && !t.usingIM && !e.shiftKey){
 					t.updateLastVERange();
 				}
 			});
@@ -4337,6 +4594,14 @@
 			//粘贴后
 			t.onAfterPaste.addFirst(function(){
 				t.updateLastVERange();
+			});
+
+			//执行命令之前，检测当前是否还在输入法状态
+			t.onBeforeExecCommand.addFirst(function(){
+				if(t.usingIM){
+					t.updateLastVERange();
+					t.usingIM = false;
+				}
 			});
 
 			//更新VERange
@@ -4369,9 +4634,6 @@
 					}
 				});
 				t.onKeyDown.addLast(function(){updatePh();});
-				t.onInitComplete.add(function(obj){
-					t.setContent({content:t.conf.placeholder, addHistory:false});
-				});
 			}
 		},
 
@@ -4490,7 +4752,7 @@
 			return false;
 		}
 	};
-})(window, document, VEditor);
+})(VEditor);
 /**
  * 编辑器核心命令集合
  * 这里包含了各种例如加粗、字体排版等基本命令
@@ -4506,7 +4768,7 @@
 			this.commands = {};
 
 			//扩展editorcommands方法到editor
-			ve.lang.each(['addCommand'], function(method){
+			ve.lang.each(['addCommand','removeCommand','hasCommand','execCommand'], function(method){
 				editor[method] = function(){
 					return _this[method].apply(_this, ve.lang.arg2Arr(arguments));
 				};
@@ -5740,6 +6002,10 @@
 				}
 
 				var bookmark = this.createBookmark(), start = bookmark.start, end;
+				if(!start || !start.parentNode || !start.parentNode.outerHTML){
+					console.log('哎呀，错误发生了，有人在不断的搞焦点');
+					return;
+				}
 
 				ieRng = this.doc.body.createTextRange();
 				try {ieRng.moveToElementText(start);} catch(ex){};
@@ -7726,7 +7992,7 @@
 				if(typeof(t.conf.cmd) == 'function'){
 					t.conf.cmd.apply(_this);
 				} else if(t.conf.cmd){
-					t.conf.editor.editorcommands.execCommand(t.conf.cmd);
+					t.conf.editor.execCommand(t.conf.cmd);
 				}
 				_this.onClick.fire(_this);
 			});
@@ -8123,7 +8389,7 @@
 		top: 0,
 		left:0,
 		width: '100%',
-		backgroundColor: 'black',
+		backgroundColor: '#aaa',
 		zIndex: 8999,
 		opacity: 0.5
 	};
@@ -8142,7 +8408,7 @@
 				MASKER_DOM = document.createElement('div');
 				document.body.appendChild(MASKER_DOM);
 				styleConfig = ve.lang.extend(true, DEF_STYLE_CONFIG, styleConfig || {});
-				ve.dom.setStyle(MASKER_DOM, styleConfig);
+				ve.dom.setStyles(MASKER_DOM, styleConfig);
 			}
 
 			var winRegion = ve.dom.getWindowRegion();
@@ -8162,49 +8428,52 @@
 	ve.ui.masklayer = masklayer;
 })(VEditor);
 (function(ve){
-	var POP_STYLECSS = [
-		'.PopupDialog {position:absolute; top:20px; left:20px; width:350px; border:1px solid #999; background-color:white; box-shadow:0 0 10px #535658}',
-		'.PopupDialog-hd {height:28px; background-color:#f3f3f3; border-bottom:1px solid #E5E5E5; cursor:move; position:relative;}',
+	/**
+	 * 由于getCurrentPopup对于内嵌的popup没有比较好的适配方案（去除对象引用），
+	 * 因此Popup暂时不提供内嵌dialog无缝接口
+	 */
+	ve.dom.insertStyleSheet('VE_WIDGET_POPUP', [
+		'.PopupDialog * {margin:0; padding:0}',
+		'.PopupDialog {position:absolute; top:20px; left:20px; width:350px; border:1px solid #999; border-top-color:#bbb; border-left-color:#bbb; background-color:white; box-shadow:0 0 8px #aaa; border-radius:3px}',
+		'.PopupDialog-hd {height:28px; background-color:white; cursor:move; position:relative; border-radius:3px 3px 0 0}',
 		'.PopupDialog-hd h3 {font-size:12px; font-weight:bolder; color:gray; padding-left:10px; line-height:28px;}',
 		'.PopupDialog-close {display:block; overflow:hidden; width:28px; height:28px; position:absolute; right:0; top:0; text-align:center; cursor:pointer; font-size:17px; font-family:Verdana; text-decoration:none; color:gray;}',
-		'.PopupDialog-close:hover {color:blue}',
-		'.PopupDialog-ft {background-color:#f3f3f3; white-space:nowrap; border-top:1px solid #e0e0e0; padding:5px 5px 5px 0; text-align:right;}',
-		'.PopupDialog-bd {padding:20px;}',
+		'.PopupDialog-close:hover {color:black;}',
+		'.PopupDialog-ft {background-color:#f3f3f3; white-space:nowrap; border-top:1px solid #e0e0e0; padding:5px 5px 5px 0; text-align:right; border-radius:0 0 3px 3px}',
+		'.PopupDialog-text {padding:20px;}',
 		'.PopupDialog-bd-frm {border:none; width:100%}',
-		'.PopupDialog-btn {display:inline-block; cursor:pointer; box-shadow:1px 1px #fff; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.7); background:-moz-linear-gradient(19% 75% 90deg, #E0E0E0, #FAFAFA); background:-webkit-gradient(linear, left top, left bottom, from(#FAFAFA), to(#E0E0E0)); color:#4A4A4A; background-color:white; text-decoration:none; padding:0 15px; height:20px; line-height:20px; text-align:center; border:1px solid #ccd4dc; white-space:nowrap; border-radius:2px}',
+		'.PopupDialog-btn {display:inline-block; font-size:12px; cursor:pointer; box-shadow:1px 1px #fff; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.7); background:-moz-linear-gradient(19% 75% 90deg, #E0E0E0, #FAFAFA); background:-webkit-gradient(linear, left top, left bottom, from(#FAFAFA), to(#E0E0E0)); color:#4A4A4A; background-color:white; text-decoration:none; padding:0 15px; height:20px; line-height:20px; text-align:center; border:1px solid #ccd4dc; white-space:nowrap; border-radius:2px}',
 		'.PopupDialog-btn:hover {background-color:#eee}',
-		'.PopupDialog-btnDefault {}'].join('');
+		'.PopupDialog-btnDefault {}'].join(''));
 
-	var POP_STYLECSS_INSERTED;
-	var GUID = 0;
-	var POPUP_COLLECTION = [];
-	var ESC_BINDED = false;
+	var _guid = 1;
 	var emptyFn = function(){};
+	var POPUP_COLLECTION = [];
 
 	/**
 	 * Popup class
 	 * @constructor Popup
 	 * @description popup dialog class
-	 * @example new ve.ui.Popup(config);
+	 * @example new YSL.widget.Popup(config);
 	 * @param {Object} config
 	 */
 	var Popup = function(cfg){
 		this.container = null;
 		this.status = 0;
-		this.moving = false;
-		this._constructReady = emptyFn;
-		this._constructed = false;
+		this._ios = {};
+		this._readyCbList = [];
+		this.guid = _guid++;
 		this.onShow = emptyFn;
 		this.onClose = emptyFn;
-		this.guid = 'VEDITOR_POPUP_'+ (++GUID);
 
 		this.config = ve.lang.extend(true, {
 			ID_PRE: 'popup-dialog-id-pre',
 			title: '对话框',				//标题
 			content: '测试',				//content.src content.id
-			zIndex: 9000,					//高度
 			width: 400,						//宽度
 			moveEnable: true,				//框体可移动
+			moveTriggerByContainer: false,	//内容可触发移动
+			zIndex: 9000,					//高度
 			isModal: false,					//模态对话框
 			topCloseBtn: true,				//是否显示顶部关闭按钮,如果显示顶部关闭按钮，则支持ESC关闭窗口行为
 			showMask: true,
@@ -8213,6 +8482,7 @@
 				dialog: 'PopupDialog',
 				head: 'PopupDialog-hd',
 				body: 'PopupDialog-bd',
+				textCon: 'PopupDialog-text',
 				iframe: 'PopupDialog-bd-frm',
 				container: 'PopupDialog-dom-ctn',
 				foot: 'PopupDialog-ft'
@@ -8225,117 +8495,33 @@
 			reciver: emptyFn	//data reciver interface
 		}, cfg);
 
-		this.constructStruct();
+		init.call(this);
 
 		//ADD TO MONITER COLLECTION
 		POPUP_COLLECTION.push(this);
 	};
 
 	/**
-	 * contruct popup structure
+	 * on content onReady
+	 * @param  {Function} callback
 	 */
-	Popup.prototype.constructStruct = function(){
-		var _this = this;
-
-		//DOM Clone Mode
-		if(!this.container){
-			this.container = document.createElement('div');
-			document.body.appendChild(this.container);
-			ve.dom.addClass(this.container, this.config.cssClass.dialog);
-			ve.dom.setStyle(this.container, 'left', '-9999px');
-
-		}
-		this.container.id = this.config.ID_PRE + Math.random();
-
-		//构建内容容器
-		var content = '';
-		if(typeof(this.config.content) == 'string'){
-			content = '<div class="'+this.config.cssClass.body+'"'+(this.config.height ? ' style="height:'+this.config.height+'px"':'')+'>'+this.config.content+'</div>';
-		} else if(this.config.content.src){
-			content = '<iframe allowtransparency="true" guid="'+this.guid+'" src="'+this.config.content.src+'" class="'+this.config.cssClass.iframe+'" frameborder=0'+(this.config.height ? ' style="height:'+this.config.height+'px"':'')+'></iframe>';
+	Popup.prototype.onReady = function(callback) {
+		if(this._ready){
+			callback();
 		} else {
-			content = '<div class="' + this.config.cssClass.container + '"'+(this.config.height ? ' style="height:'+this.config.height+'px"':'')+'></div>';
-		}
-
-		//构建按钮
-		var btn_html = '';
-		if(this.config.buttons.length > 0){
-			var btn_html = '<div class="'+this.config.cssClass.foot+'">';
-			for(var i=0; i<this.config.buttons.length; i++){
-				btn_html += '&nbsp;<a href="javascript:;" class="PopupDialog-btn'+(this.config.buttons[i].setDefault?' PopupDialog-btnDefault':'')+'">'+this.config.buttons[i].name+'</a>';
-			}
-			btn_html += '</div>';
-		}
-
-		//构建对话框框架
-		var html = ([
-				'<div class="PopupDialog-wrap">',
-					'<div class="PopupDialog-Modal-Mask" style="position:absolute; height:0px; overflow:hidden; z-index:2; background-color:#ccc; width:100%"></div>',
-					'<div class="',this.config.cssClass.head+'">',
-						'<h3>',this.config.title,'</h3>',
-						(this.config.topCloseBtn ? '<a class="PopupDialog-close" href="javascript:;" title="关闭窗口">x</a>' : ''),
-					'</div>',content,btn_html,
-				'</div>'
-			]).join('');
-		this.container.innerHTML = html;
-
-		if(this.config.content.src){
-			var iframe = this.container.getElementsByTagName('iframe')[0];
-			ve.dom.event.add(iframe, 'load', function(){
-				try {
-					var ifr = this;
-					var w = ifr.contentWindow;
-					var d = w.document;
-					var b = w.document.body;
-					w.focus();
-				} catch(ex){
-					console.log(ex);
-				}
-
-				//Iframe+无指定固定宽高时 需要重新刷新size
-				if(!_this.config.height && b){
-					b.style.overflow = 'hidden';
-
-					var info = {};
-					if(w.innerWidth){
-						//info.visibleWidth = w.innerWidth;
-						info.visibleHeight = w.innerHeight;
-					} else {
-						var tag = (d.documentElement && d.documentElement.clientWidth) ?
-							d.documentElement : d.body;
-						//info.visibleWidth = tag.clientWidth;
-						info.visibleHeight = tag.clientHeight;
-					}
-					var tag = (d.documentElement && d.documentElement.scrollWidth) ?
-							d.documentElement : d.body;
-					//info.documentWidth = Math.max(tag.scrollWidth, info.visibleWidth);
-					info.documentHeight = Math.max(tag.scrollHeight, info.visibleHeight);
-
-					//this.parentNode.parentNode.style.width = info.documentWidth + 'px';
-					//w.frameElement.style.width = info.documentWidth + 'px';
-					ifr.style.height = info.documentHeight + 'px';
-					ve.dom.setStyle(_this.container, 'height', 'auto');
-				}
-				_this._constructed = true;
-				_this._constructReady();
-			});
-		} else {
-			//移动ID绑定模式的DOM对象【注意：这里移动之后，原来的元素就被删除了，为了做唯一性，这里只能这么干】
-			if(this.config.content.id){
-				ve.dom.get('#'+this.config.content.id).style.display = '';
-				ve.dom.selector('div.'+this.config.cssClass.container)[0].appendChild(Y.dom.get('#'+this.config.content.id));
-			}
-			_this._constructed = true;
-			this._constructReady();
+			this._readyCbList.push(callback);
 		}
 	};
 
 	/**
-	 * get dom
-	 * @return {DOM}
+	 * call ready list
 	 */
-	Popup.prototype.getDom = function() {
-		return this.container;
+	Popup.prototype._callReadyList = function() {
+		this._ready = true;
+		ve.lang.each(this._readyCbList, function(fn){
+			fn();
+		});
+		this._readyCbList = [];
 	};
 
 	/**
@@ -8344,83 +8530,96 @@
 	Popup.prototype.show = function(){
 		var _this = this;
 
-		if(!POP_STYLECSS_INSERTED){
-			POP_STYLECSS_INSERTED = true;
-			ve.dom.insertStyleSheet('VEDITOR_POPUP_CSS', POP_STYLECSS);
-		}
-
-		if(!this._constructed){
-			this._constructReady = function(){
-				_this.show();
-			};
-			return;
-		}
-
-		//CREATE MASK
-		if(this.config.showMask){
-			ve.ui.masklayer.show();
-		}
-
-		this.container.style.display = '';
-
-		//CACULATE REGION INFO
-		var region = ve.lang.extend(true, ve.dom.getRegion(this.container), this.config);
-			region.minHeight = region.minHeight || 78;
-
-		var scrollLeft = ve.dom.getScrollLeft(),
-			scrollTop = ve.dom.getScrollTop(),
-			winRegion = ve.dom.getWindowRegion(),
-			top = left = 0;
-
-		if(winRegion.visibleHeight > region.height){
-			top = scrollTop + (winRegion.visibleHeight - region.height)/4;
-		} else if(winRegion.documentHeight > region.height){
-			top = scrollTop;
-		}
-
-		if(winRegion.visibleWidth > region.width){
-			left = winRegion.visibleWidth/2 - region.width/2 - scrollLeft;
-		} else if(winRegion.documentWidth > region.width){
-			left = scrollLeft;
-		}
-		var calStyle = ve.lang.extend(true, region,{left:left,top:top,zIndex:this.config.zIndex});
-		ve.dom.setStyles(this.container, calStyle);
-
-		this.onShow();
-		this.status = 1;
-		this.bindEvent();
-		this.bindMoveEvent();
-		this.bindEscCloseEvent();
-
-		var hasOtherModalPanel = false;
-		var _this = this;
-
-		ve.lang.each(POPUP_COLLECTION, function(dialog){
-			//有其他的模态对话框
-			//调低当前对话框的z-index
-			if(dialog != _this && dialog.status && dialog.config.isModal){
-				_this.config.zIndex = dialog.config.zIndex - 1;
-				hasOtherModalPanel = true;
-				return false;
-			} else if(_this != dialog && dialog.status && !dialog.config.isModal){
-				if(dialog.config.zIndex > _this.config.zIndex){
-					_this.config.zIndex = dialog.config.zIndex + 1;
-				} else if(dialog.config.zIndex == _this.config.zIndex){
-					_this.config.zIndex += 1;
-				}
+		this.onReady(function(){
+			//CREATE MASK
+			if(_this.config.showMask){
+				ve.ui.masklayer.show();
 			}
-		});
 
-		ve.dom.setStyle(this.container, 'zIndex', this.config.zIndex);
-		if(hasOtherModalPanel){
-			this.setDisable();
-		} else if(_this.config.isModal){
-			//设置除了当前模态对话框的其他对话框所有都为disable
+			_this.container.style.display = '';
+
+			//CACULATE REGION INFO
+			var region = ve.lang.extend(true, ve.dom.getRegion(_this.container), _this.config);
+				region.minHeight = region.minHeight || 78;
+
+
+			var scroll = {
+				top: ve.dom.getScrollTop(),
+				left: ve.dom.getScrollLeft()
+			};
+			var winRegion = ve.dom.getWindowRegion(),
+				top = left = 0;
+
+			if(winRegion.visibleHeight > region.height){
+				top = scroll.top + (winRegion.visibleHeight - region.height)/4;
+			} else if(winRegion.documentHeight > region.height){
+				top = scroll.top;
+			}
+
+			if(winRegion.visibleWidth > region.width){
+				left = winRegion.visibleWidth/2 - region.width/2 - scroll.left;
+			} else if(winRegion.documentWidth > region.width){
+				left = scroll.left;
+			}
+			var calStyle = {left:left,top:top,zIndex:_this.config.zIndex};
+			ve.dom.setStyles(_this.container, calStyle);
+
+			if(_this.config.height){
+				ve.dom.setStyle(ve.dom.selector('.'+_this.config.cssClass.body, _this.container), 'height', _this.config.height);
+			}
+			if(_this.config.width){
+				ve.dom.setStyle(_this.container, 'width', _this.config.width);
+			}
+
+			_this.onShow();
+			_this.status = 1;
+
+			bindDlgEvent.call(_this);
+			bindMoveEvent.call(_this);
+			bindEscCloseEvent.call(_this);
+
+			var hasOtherModalPanel = false;
+
 			ve.lang.each(POPUP_COLLECTION, function(dialog){
-				if(dialog != _this && dialog.status){
-					dialog.setDisable();
+				//有其他的模态对话框
+				//调低当前对话框的z-index
+				if(dialog != _this && dialog.status && dialog.config.isModal){
+					_this.config.zIndex = dialog.config.zIndex - 1;
+					hasOtherModalPanel = true;
+					return false;
+				} else if(_this != dialog && dialog.status && !dialog.config.isModal){
+					if(dialog.config.zIndex > _this.config.zIndex){
+						_this.config.zIndex = dialog.config.zIndex + 1;
+					} else if(dialog.config.zIndex == _this.config.zIndex){
+						_this.config.zIndex += 1;
+					}
 				}
 			});
+
+			ve.dom.setStyle(_this.container, 'zIndex', _this.config.zIndex);
+			if(hasOtherModalPanel){
+				_this.setDisable();
+			} else if(_this.config.isModal){
+				//设置除了当前模态对话框的其他对话框所有都为disable
+				ve.lang.each(POPUP_COLLECTION, function(dialog){
+					if(dialog != _this && dialog.status){
+						dialog.setDisable();
+					}
+				});
+				_this.focus();
+			} else {
+				_this.focus();
+			}
+		});
+	};
+
+	/**
+	 * 聚焦到当前对话框第一个按钮
+	 */
+	Popup.prototype.focus = function() {
+		var a = ve.dom.selector('A', this.container)[0];
+		if(a){
+			a.focus();
 		}
 	};
 
@@ -8440,27 +8639,318 @@
 	Popup.prototype.setDisable = function() {
 		var size = ve.dom.getSize(this.container);
 		var mask = ve.dom.selector('.PopupDialog-Modal-Mask', this.container)[0];
-		ve.dom.setStyles(mask, {height:size[1], opacity:0.4});
+		ve.dom.setStyles(mask, {height:size.height, opacity:0.4});
+	};
+
+	/**
+	 * close current popup
+	 */
+	Popup.prototype.close = function(){
+		if(this.onClose() === false){
+			return;
+		}
+		this.container.style.display = 'none';
+		this.status = 0;
+
+		var _this = this,
+			hasDialogLeft = false,
+			hasModalPanelLeft = false;
+
+		if(!this.config.keepWhileHide){
+			var tmp = [];
+			ve.lang.each(POPUP_COLLECTION, function(dialog){
+				if(dialog != _this){
+					tmp.push(dialog);
+				}
+			});
+
+			POPUP_COLLECTION = tmp;
+			ve.dom.remove(_this.container);
+			_this.container = null;
+		}
+
+		ve.lang.each(POPUP_COLLECTION, function(dialog){
+			if(dialog.status){
+				hasDialogLeft = true;
+			}
+			if(dialog.status && dialog.config.isModal){
+				hasModalPanelLeft = true;
+				dialog.setEnable();
+				dialog.focus();
+				return false;
+			}
+		});
+
+		//没有显示的对话框
+		if(!hasDialogLeft){
+			ve.ui.masklayer.hide();
+		}
+
+		//剩下的都是普通对话框
+		if(!hasModalPanelLeft){
+			var _lastTopPanel;
+			ve.lang.each(POPUP_COLLECTION, function(dialog){
+				if(!dialog.status){
+					return;
+				}
+				dialog.setEnable();
+				if(!_lastTopPanel){
+					_lastTopPanel = dialog;
+				} else if(_lastTopPanel.config.zIndex <= dialog.config.zIndex){
+					_lastTopPanel = dialog;
+				}
+			});
+			if(_lastTopPanel){
+				_lastTopPanel.focus();
+			}
+		}
+	}
+
+	/**
+	 * 关闭其他窗口
+	 **/
+	Popup.prototype.closeOther = function(){
+		try {
+			var _this = this;
+			ve.lang.each(POPUP_COLLECTION, function(pop){
+				if(pop != _this){
+					pop.close();
+				}
+			});
+		}catch(e){}
+	};
+
+	/**
+	 * 为当前popup添加一个IO
+	 * @param {String} key
+	 * @param {Mix} param
+	 * @return {Boolean}
+	 */
+	Popup.prototype.addIO = function(key, param){
+		return this._ios[key] = param;
+	};
+
+	/**
+	 * 获取IO
+	 * @param {String} key
+	 * @param {Function} callback
+	 */
+	Popup.prototype.getIO = function(key, callback){
+		if(this._ios[key]){
+			callback(this._ios[key]);
+		}
+	};
+
+	/**
+	 * search popup by guid
+	 * @param  {String} guid
+	 * @return {Popup}
+	 */
+	Popup.getPopupByGuid = function(guid){
+		var result;
+		ve.lang.each(POPUP_COLLECTION, function(pop){
+			if(pop.guid == guid){
+				result = pop;
+				return false;
+			}
+		});
+		return result;
+	};
+
+
+	/**
+	 * close all popup
+	 * @see Popup#close
+	 */
+	Popup.closeAll = function(){
+		ve.lang.each(POPUP_COLLECTION, function(pop){
+			pop.close();
+		});
+	};
+
+	//!!以下方法仅在iframe里面提供
+	if(window.frameElement){
+		/**
+		 * 获取当前popup IO
+		 * @param {String} key
+		 * @param {Function} callback
+		 */
+		Popup.getIO = function(key, callback){
+			var pop = Popup.getCurrentPopup();
+			if(pop){
+				pop.getIO(key, callback);
+			}
+		};
+
+		/**
+		 * 为当前popup添加一个IO
+		 * @param {String} key
+		 * @param {Mix} param
+		 * @return {Boolean}
+		 */
+		Popup.addIO = function(key, callback){
+			var pop = Popup.getCurrentPopup();
+			if(pop){
+				return pop.addIO(key, callback);
+			}
+			return false;
+		};
+
+		/**
+		 * resize current popup
+		 * @deprecated only take effect in iframe mode
+		 */
+		Popup.resizeCurrentPopup = function(){
+			if(!window.frameElement){
+				return;
+			}
+			ve.dom.event.add(window, 'load', function(){
+				var wr = ve.dom.getWindowRegion();
+				document.body.style.overflow = 'hidden';
+				window.frameElement.style.height = wr.documentHeight +'px';
+			});
+		};
+
+		/**
+		 * get current page located popup object
+		 * @param  {Dom} win
+		 * @return {Mix}
+		 */
+		Popup.getCurrentPopup = function(win){
+			var guid = window.frameElement.getAttribute('guid');
+			if(guid){
+				return parent.VEditor.ui.Popup.getPopupByGuid(guid);
+			}
+			return null;
+		};
+
+		/**
+		 * close current popup
+		 * @deprecated only take effect in iframe mode
+		 */
+		Popup.closeCurrentPopup = function(){
+			var curPop = this.getCurrentPopup();
+			if(curPop){
+				curPop.close();
+			}
+		};
+	}
+
+	/**
+	 * contruct popup structure
+	 */
+	var init = function(){
+		var _this = this;
+
+		//DOM Clone Mode
+		if(!this.container){
+			this.container = document.createElement('div');
+			document.body.appendChild(this.container);
+			ve.dom.addClass(this.container, this.config.cssClass.dialog);
+			ve.dom.setStyle(this.container, 'left', '-9999px');
+		}
+		this.container.id = this.config.ID_PRE + (_guid++);
+
+		//构建内容容器
+		var content = '<div class="'+this.config.cssClass.body+'">';
+		if(typeof(this.config.content) == 'string'){
+			content += '<p class="'+this.config.cssClass.textCon+'">'+this.config.content+'</p>';
+		} else if(this.config.content.src){
+			content += '<iframe allowtransparency="true" guid="'+this.guid+'" class="'+this.config.cssClass.iframe+'" frameborder=0></iframe>';
+		} else {
+			content += '<div class="' + this.config.cssClass.container + '"></div>';
+		}
+		content += '</div>';
+
+		//构建按钮
+		var btn_html = '';
+		if(this.config.buttons.length > 0){
+			var btn_html = '<div class="'+this.config.cssClass.foot+'">';
+			for(var i=0; i<this.config.buttons.length; i++){
+				btn_html += '&nbsp;<a href="javascript:;" class="PopupDialog-btn'+(this.config.buttons[i].setDefault?' PopupDialog-btnDefault':'')+'">'+this.config.buttons[i].name+'</a>';
+			}
+			btn_html += '</div>';
+		}
+
+		//构建对话框框架
+		var html = ([
+				'<div class="PopupDialog-wrap">',
+					'<div class="PopupDialog-Modal-Mask" style="position:absolute; height:0px; overflow:hidden; z-index:2; background-color:#ccc; width:100%"></div>',
+					'<div class="',this.config.cssClass.head+'">',
+						'<h3>',this.config.title,'</h3>',
+						(this.config.topCloseBtn ? '<span class="PopupDialog-close" tabindex="0" title="关闭窗口">x</span>' : ''),
+					'</div>',content,btn_html,
+				'</div>'
+			]).join('');
+		this.container.innerHTML = html;
+
+		if(this.config.content.src){
+			var ifr = this.container.getElementsByTagName('iframe')[0];
+			ve.dom.event.add(ifr, 'load', function(){
+				try {
+					var w = ifr.contentWindow;
+					var d = w.document;
+					var b = w.document.body;
+					w.focus();
+				} catch(ex){
+					console.log(ex);
+				}
+
+				//Iframe+无指定固定宽高时 需要重新刷新size
+				if(!_this.config.height && b){
+					b.style.overflow = 'hidden';
+
+					var info = {};
+					if(w.innerWidth){
+						info.visibleHeight = w.innerHeight;
+					} else {
+						var tag = (d.documentElement && d.documentElement.clientWidth) ?
+							d.documentElement : d.body;
+						info.visibleHeight = tag.clientHeight;
+					}
+					var tag = (d.documentElement && d.documentElement.scrollWidth) ?
+							d.documentElement : d.body;
+					info.documentHeight = Math.max(tag.scrollHeight, info.visibleHeight);
+
+					ifr.style.height = info.documentHeight + 'px';
+					ve.dom.setStyle(_this.container, 'height', 'auto');
+				} else {
+					ve.dom.setStyle(this, 'height', _this.config.height);
+				}
+
+				_this._callReadyList();
+			});
+			ifr.src = this.config.content.src;
+		} else {
+			//移动ID绑定模式的DOM对象【注意：这里移动之后，原来的元素就被删除了，为了做唯一性，这里只能这么干】
+			if(this.config.content.id){
+				ve.dom.get('#'+this.config.content.id).style.display = '';
+				ve.dom.selector('div.'+this.config.cssClass.container)[0].appendChild(ve.dom.get(this.config.content.id));
+			}
+			_this._callReadyList();
+		}
 	};
 
 	/**
 	 * bind popup event
 	 */
-	Popup.prototype.bindEvent = function(){
+	var bindDlgEvent = function(){
 		var _this = this;
-		var topCloseBtn = ve.dom.selector('a.PopupDialog-close', this.container)[0];
+		var topCloseBtn = ve.dom.selector('.PopupDialog-close', this.container)[0];
+
 		if(topCloseBtn){
-			topCloseBtn.onclick = function(){
+			ve.dom.event.add(topCloseBtn, 'click', function(){
 				_this.close();
-			};
+			});
 		}
 
 		ve.lang.each(ve.dom.selector('a.PopupDialog-btn'), function(btn, i){
 			ve.dom.event.add(btn, 'click,', function(){
-				if(_this.config.buttons[i].handler){
-					_this.config.buttons[i].handler.apply(this, arguments);
+				var hd = _this.config.buttons[i].handler || function(){_this.close();};
+				if(typeof(hd) == 'string'){
+					_this.getIO(hd, function(fn){fn();});
 				} else {
-					_this.close();
+					hd.apply(this, arguments);
 				}
 			})
 		});
@@ -8470,14 +8960,13 @@
 			defBtn.focus();
 		}
 
-		var _this = this;
-		ve.dom.event.add(this.container, 'mousedown', function(){_this.updateZindex();});
+		ve.dom.event.add(this.container, 'mousedown', function(){updateZindex.call(_this);});
 	}
 
 	/**
 	 * update dialog panel z-index property
 	 **/
-	Popup.prototype.updateZindex = function() {
+	var updateZindex = function() {
 		var _this = this;
 		var hasModalPanel = false;
 		ve.lang.each(POPUP_COLLECTION, function(dialog){
@@ -8497,190 +8986,82 @@
 	}
 
 	/**
-	 * bind ESC close event
-	 */
-	Popup.prototype.bindEscCloseEvent = function(){
-		if(ESC_BINDED){
-			return;
-		}
-		ESC_BINDED = true;
-
-		var _this = this;
-		ve.dom.event.add(document, 'keyup', function(e){
-			if(e.keyCode == ve.dom.event.KEYS.ESC){
-				var lastDialog = null;
-				ve.lang.each(POPUP_COLLECTION, function(dialog){
-					if(dialog.config.isModal && dialog.status && dialog.config.topCloseBtn){
-						lastDialog = dialog;
-						return false;
-					} else if(dialog.status && dialog.config.topCloseBtn){
-						if(!lastDialog || lastDialog.config.zIndex <= dialog.config.zIndex){
-							lastDialog = dialog;
-						}
-					}
-				});
-				if(lastDialog){
-					lastDialog.close();
-				}
-			}
-		});
-	}
-
-	/**
 	 * bind popup moving event
 	 */
-	Popup.prototype.bindMoveEvent = function(){
+	var bindMoveEvent = function(){
 		if(!this.config.moveEnable){
 			return;
 		}
 		var _this = this;
-		var head = ve.dom.selector('.'+this.config.cssClass.head, this.container)[0];
+		var _lastPoint = {X:0, Y:0};
+		var _lastRegion = {top:0, left:0};
+		var _moving;
+
+		ve.dom.event.add(document, 'mousemove', function(e){
+			e = e || window.event;
+			if(!_this.container || !_moving || ve.dom.event.getButton(e) !== 0){
+				return false;
+			}
+			offsetX = parseInt(e.clientX - _lastPoint.X, 10);
+			offsetY = parseInt(e.clientY - _lastPoint.Y, 10);
+			var newLeft = Math.max(_lastRegion.left + offsetX,0);
+			var newTop = Math.max(_lastRegion.top + offsetY,0);
+			ve.dom.setStyles(_this.container, {top:newTop,left:newLeft});
+		});
 
 		ve.dom.event.add(document, 'mousedown', function(e){
-			var tag = ve.dom.event.getTarget();
-			if(!head || !(tag == head || ve.dom.contains(head, tag))){
+			if(!_this.container){
 				return;
 			}
-
-			_this.moving = false;
-
-			if((ve.ua.ie && (e.button == 1 || e.button == 0)) || e.button == 0){
-				_this.moving = true;
+			var head = _this.config.moveTriggerByContainer ? _this.container : ve.dom.selector('.'+_this.config.cssClass.head, _this.container)[0];
+			var tag = ve.dom.event.getTarget();
+			if(ve.dom.contains(head, tag)){
+				_moving = true;
+				_lastRegion = ve.dom.getRegion(_this.container);
+				_lastPoint = {X: e.clientX, Y: e.clientY};
+				ve.dom.event.preventDefault(e);
 			}
-
-			if(_this.moving && (e.button == 1 || e.button == 0)){
-				var conRegion = ve.dom.getRegion(_this.container);
-				px = parseInt(e.clientX - conRegion.left);
-				py = parseInt(e.clientY - conRegion.top);
-
-				ve.dom.event.add(document, 'mousemove', function(e2){
-					if(!_this.moving || ve.dom.event.getButton(e2) !== 0){
-						return false;
-					}
-					e2 = e2 || window.event;
-					var newLeft = e2.clientX - px,
-						newTop = e2.clientY - py;
-					newTop = newTop >= 0 ? newTop : 0;	//限制对话框不能被拖出窗口
-					ve.dom.setStyles(_this.container, {top:newTop,left:newLeft});
-				});
-			}
-			ve.dom.event.preventDefault();
-			return false;
 		});
+
 		ve.dom.event.add(document, 'mouseup', function(){
-			_this.moving = false;
+			_moving = false;
 		});
-	}
-
-	/**
-	 * close current popup
-	 */
-	Popup.prototype.close = function(){
-		if(this.onClose() === false || !this.container){
-			return;
-		}
-		this.container.style.display = 'none';
-		this.status = 0;
-
-		var _this = this,
-			hasDialogLeft = false,
-			hasModalPanelLeft = false;
-
-		ve.lang.each(POPUP_COLLECTION, function(dialog){
-			if(dialog.status){
-				hasDialogLeft = true;
-			}
-			if(dialog.status && dialog.config.isModal){
-				hasModalPanelLeft = true;
-				dialog.setEnable();
-				return false;
-			}
-		});
-
-		//没有显示的对话框
-		if(!hasDialogLeft){
-			ve.ui.masklayer.hide();
-		}
-
-		//剩下的都是普通对话框
-		if(!hasModalPanelLeft){
-			ve.lang.each(POPUP_COLLECTION, function(dialog){
-				dialog.setEnable();
-			});
-		}
-
-		if(!this.config.keepWhileHide){
-			var tmp = [];
-			ve.lang.each(POPUP_COLLECTION, function(dialog){
-				if(dialog != _this){
-					tmp.push(dialog);
-				}
-			});
-
-			POPUP_COLLECTION = tmp;
-			_this.container.parentNode.removeChild(_this.container);
-			_this.container = null;
-			_this = null;
-		}
 	};
 
 	/**
-	 * 关闭其他窗口
-	 **/
-	Popup.prototype.closeOther = function(){
-		try {
+	 * bind ESC close event
+	 */
+	var bindEscCloseEvent = (function(){
+		var ESC_BINDED;
+		return function(){
+			if(ESC_BINDED){
+				return;
+			}
+			ESC_BINDED = true;
+
 			var _this = this;
-			ve.lang.each(POPUP_COLLECTION, function(pop){
-				if(pop != _this){
-					pop.close();
+			ve.dom.event.add(document, 'keyup', function(e){
+				if(e.keyCode == ve.dom.event.KEYS.ESC){
+					var lastDialog = null;
+					ve.lang.each(POPUP_COLLECTION, function(dialog){
+						if(dialog.config.isModal && dialog.status && dialog.config.topCloseBtn){
+							lastDialog = dialog;
+							return false;
+						} else if(dialog.status && dialog.config.topCloseBtn){
+							if(!lastDialog || lastDialog.config.zIndex <= dialog.config.zIndex){
+								lastDialog = dialog;
+							}
+						}
+					});
+					if(lastDialog){
+						lastDialog.close();
+					}
 				}
 			});
-		}catch(e){}
-	};
-
-	/**
-	 * close all popup
-	 * @see Popup#close
-	 */
-	Popup.closeAll = function(){
-		ve.lang.each(POPUP_COLLECTION, function(pop){
-			pop.close();
-		});
-	};
-
-	/**
-	 * resize current popup
-	 * @deprecated only take effect in iframe mode
-	 */
-	Popup.resizeCurrentPopup = function(){
-		if(!window.frameElement){
-			return;
 		}
-
-		ve.dom.event.add(window, 'load', function(){
-			var wr = ve.dom.getWindowRegion();
-			document.body.style.overflow = 'hidden';
-			window.frameElement.style.height = wr.documentHeight +'px';
-		});
-	};
-
-	/**
-	 * search popup by guid
-	 * @param  {String} guid
-	 * @return {Popup}
-	 */
-	Popup.getPopupByGuid = function(guid){
-		var result;
-		ve.lang.each(POPUP_COLLECTION, function(pop){
-			if(pop.guid == guid){
-				result = pop;
-				return false;
-			}
-		});
-		return result;
-	};
-
+	})();
 	ve.ui.Popup = Popup;
+
 
 	/**
 	 * 显示popup

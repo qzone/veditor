@@ -148,7 +148,7 @@
 
 			//office图片保留
 			//这里只有ie6需要，其他浏览器已经自动生成了<img>标签
-			if(ve.ua.ie && ve.ua.ie <= 8){
+			if(ve.ua.ie){
 				str = processStrByReg(str, [[/<v\:imagedata\s([^>]*)>/gi]], this.convOfficeImg);
 			}
 

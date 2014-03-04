@@ -1,4 +1,4 @@
-(function(window, document, ve) {
+(function(ve) {
 	var EXT_FILES_LOADED = false;
 	var EDITOR_GUID = 0;
 
@@ -11,6 +11,9 @@
 		Editor: function (conf) {
 			var t = this;
 			t.id = conf.id || ('veditor'+(++EDITOR_GUID));
+
+			//启动事件
+			t.__startup_time__ = (new Date()).getTime();
 
 			//快捷键map
 			t._shortcuts = [];
@@ -25,11 +28,13 @@
 			t.conf = ve.lang.extend({
 				plugins: '',					//插件列表（格式参考具体代码）
 
-				container: '',					//容器，该配置项与下方三个容器互斥，如果container为一个form元素的话， 下方的3个容器为container父元素
+				container: '',					//容器，该配置项与下方三个容器互斥，如果container为一个textarea元素的话， 下方的3个容器为container父元素
 
 				toolbarContainer: '',			//工具条容器!
-				iframeContainer: '',			//iframe容器!
+				iframeContainer: '',			//iframe容器!	如果设置iframe为textarea，则iframeContainer取该textarea父容器，并关联该textarea
 				statusbarContainer: '',			//状态条容器
+
+				relateContainer: '',			//关联容器（支持textarea或可编辑div等），这里只是单向关联，编辑器数据变化会更新该容器，反之，该容器变化不会更新到编辑器
 
 				placeholder: '',				//placeholder，仅检测文字命中部分，不对其他元素进行校验，
 												//也就是说，如果placeholder = '<div><b>text</b></div>'；那仅校验 text
@@ -48,69 +53,90 @@
 				domain: ve.domain || null		//域名
 			}, conf);
 
-			ve.lang.each(['toolbarContainer','statusbarContainer', 'iframeContainer', 'container'], function(n) {
+			ve.lang.each(['toolbarContainer','statusbarContainer', 'relateContainer', 'iframeContainer', 'container'], function(n) {
 				if(t.conf[n]){
 					t.conf[n] = ve.dom.get(t.conf[n]);
 				}
 			});
 
-			//支持表单形式
-			t._useForm = false;
+			//支持 单个表单形式
 			if(t.conf.container){
-				if(t.conf.container.tagName == 'INPUT' || t.conf.container.tagName == 'TEXTAREA'){
-					t.conf.container.style.display = 'none';
-					t._useForm = true;
-					t.conf.placeholder = t.conf.placeholder || t.conf.container.getAttribute('placeholder');
+				if(t.conf.container.tagName == 'TEXTAREA'){
+					t.conf.relateContainer = t.conf.container;
+					t.conf.container = t.conf.container.parentNode;
 				}
-				t.conf.toolbarContainer = t.conf.iframeContainer = t.conf.statusbarContainer = t._useForm ? t.conf.container.parentNode : t.conf.container;
+				t.conf.toolbarContainer = t.conf.iframeContainer = t.conf.statusbarContainer = t.conf.container;
 			}
 
-			//触发事件
-			ve.lang.each(['onInit',
-				'onSelect',
-				'onKeyPress',
-				'onKeyDown',
-				'onKeyUp',
-				'onMouseOver',
-				'onMouseDown',
-				'onMouseUp',
-				'onClick',
-				'onBeforeExecCommand',
-				'onAfterExecCommand',
-				'onInitComplete',
-				'onSelectContent',
-				'onUIRendered',
-				'onBlur',
-				'onFocus',
-				'onBeforeOpenListBox',
-				'onBeforeGetContent',
-				'onGetContent',
-				'onBeforeSetContent',
-				'onSetContent',
-				'onAfterSetContent',
-				'onAfterClearContent',
-				'onPaste',
-				'onAfterPaste',
-				'onResize',
-				'onPluginsInited',
-				'onIframeLoaded',
-				'onAfterUpdateVERange',
-				'onAfterUpdateVERangeLazy',		//懒惰触发事件
-				'onNodeRemoved'], function(n) {
-				t[n] = new ve.EventManager(t);
-			});
+			//支持指定表单作为内容区域形式
+			if(t.conf.iframeContainer.tagName == 'TEXTAREA'){
+				t.conf.relateContainer = t.conf.iframeContainer;
+				t.conf.iframeContainer = t.conf.iframeContainer.parentNode;
+			}
 
-			if(!this.conf.toolbarContainer || !this.conf.iframeContainer){
+			//指定状态条
+			t.conf.statusbarContainer = t.conf.statusbarContainer || t.conf.iframeContainer;
+
+			if(!t.conf.toolbarContainer || !t.conf.iframeContainer){
 				throw('NEED CONTAINER SPECIFIED');
 			}
-			this.conf.statusbarContainer = this.conf.statusbarContainer || this.conf.iframeContainer;
+
+			//关联textarea
+			if(t.conf.relateContainer){
+				t.conf.placeholder = t.conf.placeholder || t.conf.relateContainer.getAttribute('placeholder');
+			}
+
+			//copy容器到editor下
+			ve.lang.each(['toolbarContainer','statusbarContainer', 'relateContainer', 'iframeContainer', 'container'], function(n){
+				t[n] = t.conf[n];
+			});
+
+			//触发事件
+			ve.lang.each([
+				'onSelect',					//选区选择
+				'onKeyPress',				//按键按下
+				'onKeyDown',				//按键按下
+				'onKeyUp',					//按键松开
+				'onMouseOver',				//鼠标over
+				'onMouseDown',				//鼠标按下
+				'onMouseUp',				//鼠标松开
+				'onClick',					//点击
+				'onPaste',					//粘贴事件（支持中断）
+				'onAfterPaste',				//粘贴之后
+
+				'onSelectContent',			//选择内容
+				'onBlur',					//失焦
+				'onFocus',					//聚焦
+				'onBeforeOpenListBox',		//菜单打开
+				'onResize',					//调整大小
+
+				'onBeforeGetContent',		//获取内容之前
+				'onGetContent',				//获取内容（支持中断）
+				'onBeforeSetContent',		//设置内容之前
+				'onSetContent',				//设置内容（支持中断）
+				'onAfterSetContent',		//设置内容之后
+				'onAfterClearContent',		//清除内容之后
+
+				'onPluginsInited',			//插件初始化完成
+				'onIframeInited',			//iframe初始化完成
+				'onInitComplete',			//初始化完成
+
+				'onBeforeExecCommand',		//执行命令之前
+				'onAfterExecCommand',		//执行命令之后
+				'onAfterUpdateVERange',		//更新Range之后
+				'onAfterUpdateVERangeLazy',	//更新Range懒惰触发事件
+
+				'onError'],					//报错
+				function(n) {
+				t[n] = new ve.EventManager(t);
+			});
 		},
 
 		/**
 		 * 加载额外的文件，包括适配器、视图、插件
 		 * @param {function} callback
 		 **/
-		loadExtFiles: function(callback) {
+		_loadExtFiles: function(callback) {
 			var _this = this,
 				fileList = [];
 
@@ -139,6 +165,7 @@
 				});
 			}
 
+			console.log('VE _loadExtFiles:', fileList);
 			if(fileList.length){
 				ve.net.loadScript(fileList, callback);
 			} else {
@@ -162,11 +189,10 @@
 					if (matches[3]) {
 						ppc = ppc.concat(matches[3].split('+'));
 						url[matches[1].replace(/\(/g, '') || matches[3]] = matches[3] || matches[1];
-					}
-					else {
+					} else {
 						ppc.push(n);
 						url[n] = n;
-				}
+					}
 				});
 			}
 			ve.lang.each(url, function (n, i) {
@@ -202,13 +228,16 @@
 
 			//预加载文件
 			if(!EXT_FILES_LOADED){
-				t.loadExtFiles(function(){
+				console.log('VE init --> no ext files loaded');
+				t._loadExtFiles(function(){
 					EXT_FILES_LOADED = true;
+					console.log('VE init --> ext files loaded');
 					t.init();
 				});
 				return;
 			}
 
+			console.log('VE view get');
 			//初始化视图管理器
 			var view = ve.viewManager.get(this.conf.viewer);
 			if (!view){
@@ -218,67 +247,182 @@
 			this.viewControl.init(this, this.conf.viewerurl || this.conf.viewer);
 			this.editorcommands = new ve.EditorCommands(this);
 
-			//创建iframe
-			this.createIframe();
 
+			//渲染toolbar放入核心加载成功之后，
+			//避免核心初始化失败，还存在工具条的情况
+			var _crashed, _loading = true;
+			this.onError.add(function(msg, code){
+				console.log('VE onError', msg, code);
+				if(code == VEditor.ERROR.CRASH){
+					_crashed = true;
+				}
+			});
+
+			//使用表单提交数据
+			//这里只能处理换行情况，其他的处理不了，因为如果处理，就意味着html标记信息将被丢失
+			if(t.conf.relateContainer){
+				console.log('VE relateContainer setted');
+				var _isTextarea = t.conf.relateContainer.tagName == 'TEXTAREA';
+				var _set = function(html){
+					if(_isTextarea){
+						t.conf.relateContainer.value = _toStr(html);
+					} else {
+						t.conf.relateContainer.innerHTML = html;
+					}
+				};
+				var _get = function(){
+					if(_isTextarea){
+						return _toHtml(t.conf.relateContainer.value);
+					} else {
+						return t.conf.relateContainer.innerHTML;
+					}
+				};
+				var _toStr = function(html){
+					return html.replace(/<br[^>]*>/g, "\r\n");
+				};
+				var _toHtml = function(str){
+					return str.replace(/\r\n/g, "\n").replace(/\n/g, '<br/>');
+				};
+
+				this.onInitComplete.addFirst(function(){
+					_loading = false;
+					var s = _get();
+					if(s){
+						t.setContent({content:s});
+					}
+				});
+				this.onAfterUpdateVERangeLazy.add(function(){_set(t.getContent());});
+				this.onSetContent.add(function(html){_set(html);});
+				this.onGetContent.addLast(function(html){
+					if(_crashed || _loading){
+						html = _get();
+					}
+					return html;
+				}, true);
+			}
+
+			console.log('VE base layout render');
 			//渲染布局
 			this.viewControl.renderBaseLayout();
 
+			//未崩溃情况下，才进行插件初始化、工具条渲染等操作
+			this.onIframeInited.add(function(){
+				if(!_crashed){
+					t._bindEditorDomEvent();
+
+					//启动插件，这样插件里面的初始化方法可以提供按钮
+					t._launchPlugins();
+
+					//渲染工具条（按钮）
+					t.viewControl.renderToolbar();
+				}
+			});
+
+			//创建iframe
+			this._createIframe();
+
 			if (!ve.ua.ie || !this.conf.domain){
-				t.initIframe();
+				this._initIframe();
 			}
 
-			this._launchPlugins();
-
-			//渲染toolbar
-			this.viewControl.renderToolbar();
-			this.onUIRendered.fire();
-
-			if(t._iframeInited){
+			if(this._iframeInited){
 				//console.log('主脚本检测到t._iframeInited, 执行t._fireInitComplete');
-				t._fireInitComplete();
+				this._fireInitComplete();
 			} else {
 				//console.log('主脚本检测到iframe还没有加载完');
-				t._needFireInitCompleteInInitIframe = true;
+				this._needFireInitCompleteInInitIframe = true;
 			}
-			return t;
+			return this;
+		},
+
+		/**
+		 * 读取编辑器配置
+		 * @param  {String} key
+		 * @param  {String} scope 上下文，可以用插件名称来规避冲突
+		 * @return {Mix}
+		 */
+		getConfig: function(key, scope){
+			if(scope){
+				if(!this.conf[scope]){
+					return undefined;
+				}
+				return this.conf[scope][key];
+			}
+			return this.conf[key];
+		},
+
+		/**
+		 * 设置配置
+		 * @param  {String} key
+		 * @param  {String} val
+		 * @param  {String} scope 上下文，可以用插件名称来规避冲突
+		 */
+		setConfig: function(key, val, scope){
+			if(scope){
+				if(!this.conf[scope]){
+					this.conf[scope] = {};
+				}
+				this.conf[scope][key] = val;
+			}
+			this.conf[key] = val;
+		},
+
+		/**
+		 * 异常处理
+		 * @param  {String} msg		异常message
+		 * @param  {String} code 	异常code
+ 		 * @param  {Mix} data		数据
+		 */
+		exception: function(msg, code, data){
+			var s = new String(msg);
+			s.code = code;
+			s.data = data;
+			this.onError.fire(this, msg, code, data);
+			window.console && window.console.log(msg, code, data);
 		},
 
 		/**
 		 * 创建编辑器iframe
 		 * @deprecate 这里区分了domain情况和对ie等浏览器兼容处理
 		 **/
-		createIframe: function(){
+		_createIframe: function(){
+			console.log('VE start create IFRAME');
 			var _this = this;
 			this.iframeHTML = (ve.ua.ie && ve.ua.ie < 9 ? '': '<!DOCTYPE html>');
 			this.iframeHTML += '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />';
 
+
+			console.log('VE config domain:', this.conf.domain);
 			//设置了domain
 			var frameUrl = 'javascript:;';
 			if (this.conf.domain) {
 				if (ve.ua.ie){
-					frameUrl = 'javascript:(function(){document.open();document.domain="' + this.conf.domain + '";var ed = window.parent.VEditor.get("' + this.id + '");document.write(ed.iframeHTML);document.close();ed.initIframe();})()';
+					frameUrl = 'javascript:(function(){document.open();document.domain="' + this.conf.domain + '";var ed = window.parent.VEditor.get("' + this.id + '");document.write(ed.iframeHTML);document.close();ed._initIframe();})()';
 				}
 				this.iframeHTML += '<script type="text/javascript">document.domain = "' + this.conf.domain + '";</script>';
 			}
 			this.iframeHTML += '</head><body></body></html>';
 
+			console.log('VE frameUrl:', frameUrl);
+			console.log('VE iframeHTML:', this.iframeHTML);
+
 			//创建<iframe>
 			this.iframeElement = ve.dom.create('iframe', {
 				id: this.id + '_Iframe',
-				src: frameUrl,
+				//src: frameUrl,
 				frameBorder: '0',
 				allowTransparency: 'true',
 				style: {
-					width : '100%',
-					height : this.conf.height ? this.conf.height+'px' : 'auto'
+					width: '100%',
+					height: this.conf.height ? this.conf.height+'px' : 'auto'
 				}
 			});
-			ve.dom.event.add(this.iframeElement, 'load', function(){	//加载事件必须优先于append操作
-				_this.onIframeLoaded.fire(_this.iframeElement);
-			});
-			this.iframeContainer = ve.dom.create('div', {'class': 'veIframeContainer editor_iframe_container_' + this.id, 'style': {width: this.conf.width}});
-			this.iframeContainer.appendChild(this.iframeElement);
+			var icWrap = ve.dom.create('div', {'class': 'veIframeContainer editor_iframe_container_' + this.id, 'style': {width: this.conf.width}});
+			icWrap.appendChild(this.iframeElement);
+			this.iframeContainer.appendChild(icWrap);
+			this.iframeElement.src = frameUrl;
+
+			//this.iframeElement.src = '';
 		},
 
 		_initCompleteFired: false,
@@ -293,74 +437,72 @@
 				//或者可以考虑这个t.onInitComplete.add可以用triggle代替
 				//console.log('命中fire逻辑，延时100ms后fire');
 				t._initCompleteFired = true;
+
 				setTimeout(function(){
-					t.onInitComplete.fire(t, t);
-				}, 100);
+					var tm = (new Date().getTime()) - t.__startup_time__;
+					t.onInitComplete.fire(t, t, tm);
+				}, 0);
 			}
 		},
 
 		//是否需要在initIframe里面执行initComplete事件
 		_needFireInitCompleteInInitIframe: false,
 		_iframeInited: false,
-		initIframe: function () {
+		_initIframe: function () {
+			console.log('VE _iframeInited');
 			if(this._iframeInited){
 				return;
 			}
+			var t = this, doc;
 
-			var t = this, d;
 			try {
-				d = this.getDoc();
-			} catch(ex){
-				throw('IE IFRAME访问没有权限');
-			}
+				console.log('VE start to open doc');
+				doc = this.getDoc();
 
-			// if(!d.body){
-			// 	console.log('d.body 不命中', d.body);
-			// 	window.setTimeout(function(){t.initIframe();}, 1000);
-			// 	return;
-			// }
+				//[chrome] 关闭该选项会导致app页面有时候不触发window.unload事件
+				//估计旧版的chrome不会有这个问题
+				doc.open();
+				doc.write(this.iframeHTML);
+				doc.close();
 
-			//chrome在这里有bug，关闭该选项会导致app页面有时候不触发window.unload事件
-			//估计旧版的chrome不会有这个问题
-			d.open();
-			d.write(t.iframeHTML);
-			d.close();
-
-			if(ve.ua.ie){
-                d.body.disabled = true;
-                d.body.contentEditable = true;
-                d.body.disabled = false;
-			} else {
-				d.body.contentEditable = true;
-                d.body.spellcheck = false;
-			}
-
-			if(this.conf.height){
-				d.body.style.height = t.conf.height + 'px';
-			}
-
-			d.body.innerHTML = this.getEmptyHelperHtml();
-			t.bindEditorDomEvent();
-			t.onInit.fire();
-
-			if (t.conf.styleWithCSS) {
-				try {
-					d.execCommand("styleWithCSS", 0, true);
-				} catch (e) {
-					try {
-						d.execCommand("useCSS", 0, true);
-					} catch (e) {}
+				if(ve.ua.ie){
+	                doc.body.disabled = true;
+	                doc.body.contentEditable = true;
+	                doc.body.disabled = false;
+				} else {
+					doc.body.contentEditable = true;
+	                doc.body.spellcheck = false;
 				}
+
+				console.log('VE doc opened');
+
+				if(this.conf.height){
+					doc.body.style.height = this.conf.height + 'px';
+				}
+				if (this.conf.styleWithCSS) {
+					try {
+						doc.execCommand("styleWithCSS", 0, true);
+					} catch (e) {
+						try {
+							doc.execCommand("useCSS", 0, true);
+						} catch (e) {}
+					}
+				}
+				if(this.conf.editorCss){
+					ve.dom.insertStyleSheet(null, this.conf.editorCss, doc);
+				}
+				doc.body.innerHTML = this.conf.placeholder || this.getEmptyHelperHtml();
+			} catch(ex){
+				t.exception('iframe没有访问权限', VEditor.ERROR.CRASH);
 			}
 
-			if(t.conf.editorCss){
-				ve.dom.insertStyleSheet(null, t.conf.editorCss, d);
-			}
+			console.log('VE iframe inited');
 
-			t._iframeInited = true;
+			this._iframeInited = true;
+			this.onIframeInited.fire(this.iframeElement);	//iframe初始化完成
 
-			if(t._needFireInitCompleteInInitIframe){
-				t._fireInitComplete();
+			if(this._needFireInitCompleteInInitIframe){
+				this._fireInitComplete();
 			}
 		},
 
@@ -467,9 +609,9 @@
 
 			if(typeof(cmd) == 'function'){
 				fn = cmd;
-			} else if(this.editorcommands.hasCommand(cmd)){
+			} else if(this.hasCommand(cmd)){
 				fn = function(){
-					_this.editorcommands.execCommand(cmd, false);
+					_this.execCommand(cmd, false);
 					return false;
 				}
 			} else {
@@ -604,6 +746,7 @@
 			var _this = this;
 
 			if(!rng){
+				this.getWin().focus();
 				rng = new ve.Range(this.getWin(), this.getDoc());
 				rng.convertBrowserRange();
 			}
@@ -672,7 +815,42 @@
 			}
 
 			//执行命令
-			this.editorcommands.execCommand('insertHtml', params.content);
+			this.execCommand('insertHtml', params.content);
+		},
+
+		/**
+		 * 插图
+		 * @deprecated 如果提供最大宽度或高度，图片将按照等比方式压缩
+		 * @param  {Object} imgData   图片属性信息 imgData.src 为必须内容
+		 * @param  {Number} maxWidth  最大宽度
+		 * @param  {Number} maxHeight 最大高度
+		 * @param {Function} callback 图片插入完成回调
+		 */
+		insertImage: function(imgData, maxWidth, maxHeight, callback){
+			var _this = this;
+			var _ins = function(data){
+				var html = '', attrs = [];
+				for(var i in data){
+					attrs.push(i+'="'+data[i]+'"');
+				}
+				html = attrs.join(' ');
+				_this.insertHtml({content:'<img '+html+'/>'});
+				setTimeout(function(){
+					_this.resize();
+					callback && callback();
+				}, 10);
+			};
+
+			if((maxWidth || maxHeight) && !(imgData.width || imgData.height)){
+				ve.dom.loadImageQueue([imgData.src], function(itemList){
+					var reg = ve.lang.resize(itemList[0].width, itemList[0].height, maxWidth, maxHeight);
+					imgData.width = reg[0];
+					imgData.height = reg[1];
+					_ins(imgData);
+				});
+			} else {
+				_ins(imgData);
+			}
 		},
 
 		/**
@@ -722,10 +900,8 @@
 		getContent: function () {
 			this.onBeforeGetContent.fire(this);
 			var html = this.getBody().innerHTML || '';
-			if(html){
-				html = this.onGetContent.fire(this, html);
-				html = html.replace(ve.fillCharReg, '');
-			}
+			html = this.onGetContent.fire(this, html) || '';
+			html = html.replace(ve.fillCharReg, '') || '';
 			return html;
 		},
 
@@ -754,7 +930,7 @@
 				s = rng.startContainer,
 				doc = this.getDoc();
 
-			if(s.nodeType == 1){
+			if(s.parentNode && s.nodeType == 1){
 				var _psNode;
 				_psNode = doc.createElement('span');
 				_psNode.style.cssText = 'display:inline-block; height:1px;width:1px;';
@@ -771,7 +947,7 @@
 				var region = ve.dom.getRegion(_psNode);
 				ve.dom.remove(_psNode);
 				retVal = region.top + region.height;
-			} else if(s.nodeType == 3){
+			} else if(s.parentNode &&s.nodeType == 3){
 				var _psNode = doc.createElement('span');
 					ve.dom.insertBefore(_psNode, s);
 					_psNode.style.cssText = 'display:inline-block; height:1px;width:1px;';
@@ -916,7 +1092,7 @@
 		/**
 		 * 绑定编辑器相关的事件
 		 */
-		bindEditorDomEvent: function () {
+		_bindEditorDomEvent: function () {
 			var t = this, w = t.getWin(), d = t.getDoc(), b = t.getBody();
 
 			//输入法keyCode监测
@@ -932,16 +1108,7 @@
 				t.usingIM = !!IMK_MAP[e.keyCode];
 			});
 
-			//修正输入法下面的切换（这里的空白键不那么准确，需要依赖输入法的按键设置）
-			ve.dom.event.add(b, 'keyup', function(e){
-				if(e.keyCode == 32){
-					t.usingIM = false;
-				}
-			});
 			ve.dom.event.add(b, 'mousedown', function(){
-				t.usingIM = false;
-			});
-			t.onAfterUpdateVERange.addFirst(function(){
 				t.usingIM = false;
 			});
 
@@ -962,13 +1129,6 @@
 			if (t.conf.autoAdjust) {
 				t.onAfterUpdateVERangeLazy.add(function(){
 					t.resize();
-				});
-			}
-
-			//使用表单提交数据
-			if(t._useForm){
-				t.onAfterUpdateVERangeLazy.add(function(){
-					t.conf.container.value = t.getContent();
 				});
 			}
 
@@ -1059,7 +1219,6 @@
 									}catch (ev){
 										currentLI = '';
 									}
-									//console.log(currentLI.innerHTML);
 									if(currentLI && currentLI.previousSibling && currentLI.previousSibling.tagName == 'LI'){ //非列表内第一个li
 										rng.startContainer = currentLI.previousSibling;
 										rng.startOffset = currentLI.previousSibling.childNodes.length;
@@ -1292,7 +1451,7 @@
 					//按着shift松开其他按键[方向键]这种情况不能更新range，否则会出现用户选择不全的情况
 				}
 				//去除 ctrl+v，中文输入法冲突
-				else if(!e.ctrlKey && e.keyCode != 17 && !t.usingIM){
+				else if(!e.ctrlKey && e.keyCode != 17 && !t.usingIM && !e.shiftKey){
 					t.updateLastVERange();
 				}
 			});
@@ -1301,6 +1460,14 @@
 			//粘贴后
 			t.onAfterPaste.addFirst(function(){
 				t.updateLastVERange();
+			});
+
+			//执行命令之前，检测当前是否还在输入法状态
+			t.onBeforeExecCommand.addFirst(function(){
+				if(t.usingIM){
+					t.updateLastVERange();
+					t.usingIM = false;
+				}
 			});
 
 			//更新VERange
@@ -1333,9 +1500,6 @@
 					}
 				});
 				t.onKeyDown.addLast(function(){updatePh();});
-				t.onInitComplete.add(function(obj){
-					t.setContent({content:t.conf.placeholder, addHistory:false});
-				});
 			}
 		},
 
@@ -1454,4 +1618,4 @@
 			return false;
 		}
 	};
-})(window, document, VEditor);
+})(VEditor);

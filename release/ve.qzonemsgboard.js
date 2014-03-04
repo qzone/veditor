@@ -112,6 +112,11 @@
 			return BASE_PATH + (u||'');
 		},
 
+		ERROR: {
+			CRASH: 999,
+			NET_RESOURCE: 999
+		},
+
 		plugin: {},
 		version: '2.03',
 		blankChar: '\uFEFF',
@@ -119,7 +124,6 @@
 		caretChar: '\u2009',
 		ui: {},
 		dom: {},
-
 
 		/**
 		 * 添加编辑器实例
@@ -144,7 +148,7 @@
 		isHelperNode: function(node){
 			return node && node.nodeType == 3 &&
 				(new RegExp('^'+this.blankChar+'$').test(node.nodeValue) ||
-					new RegExp('^'+this.caretChar+'$').test(node.nodeValue));
+				new RegExp('^'+this.caretChar+'$').test(node.nodeValue));
 		},
 
 		/**
@@ -156,9 +160,17 @@
 			var editor = new VEditor.Editor(conf);
 			this.add(editor);
 
+			//这里通过timeout来强制某些浏览器初始化核心的时候采用了同步方式初始化，
+			//导致外部逻辑代码（形如：var ed = VE.create(); ed.onInitComplete.add()）事件绑定失效
+			//正规做法应该是 var ed = new VE(); ed.init(); 当前create方法两步都做了，因此这里需要强制异步
 			setTimeout(function(){
-			editor.init();
-			}, 100);
+				try {
+					console.log('VE init start');
+					editor.init();
+				} catch(ex){
+					editor.exception(ex.toString(), (ex['code'] || VEditor.ERROR.CRASH), ex['data'], true);
+				}
+			},0);
 
 			return editor;
 		}
@@ -167,6 +179,13 @@
 	//占用命名空间
 	//@deprecate 这里由于旧版的使用的命名空间为veEditor，所以暂时适配
 	window.veEditor = window.VEditor = VEditor;
+
+	//统计，不需要的开发同学可以注释掉
+	setTimeout(function(){
+		var img = new Image();
+		var h = location.hostname.replace(/\./g, '_');
+		img.src = 'http://pinghot.qq.com/pingd?dm=blog.qzone.qq.com.hot&url=/BlogEditer&tt=-&hottag=BlogEditer.veditorpv.'+h+'&hotx=9999&hoty=9999&adtag=-&rand='+Math.random()
+	}, 5000);
 }) (window, document);
 (function(window, document, ve, undefined) {
 	//原型继承需要处理的字段
@@ -212,6 +231,39 @@
 				}
 			}
 			return 1;
+		},
+
+		/**
+		 * 等比缩放
+		 * @param  {Number} width     当前宽度
+		 * @param  {Number} height    当前高度
+		 * @param  {Number} maxWidth  最大宽度
+		 * @param  {Number} maxHeight 最大高度
+		 * @return {Array}           [宽度，高度]
+		 */
+		resize: function(width, height, maxWidth, maxHeight){
+			var w,h;
+			if(!maxWidth){
+				h = Math.min(height, maxHeight);
+				w = (h/height)*width;
+			}
+			else if(!maxHeight){
+				w = Math.min(width, maxWidth);
+				h = (w/width)*height;
+			}
+			else {
+				var r1 = height/width, r2 = maxHeight/maxWidth;
+				if(r1 > r2){
+					h = Math.min(height, maxHeight);
+					w = width*h/height;
+				} else {
+					w = Math.min(width, maxWidth);
+					h = height*w/width;
+				}
+			}
+			w = parseInt(w, 10);
+			h = parseInt(h, 10);
+			return [w,h];
 		},
 
 		arrayIndex: function(arr, item, start) {
@@ -518,7 +570,7 @@
 	};
 	ve.lang = lang;
 })(window, document, VEditor);
-﻿(function(window, document, ve, undefined) {
+(function(window, document, ve, undefined) {
 	if(!QZFL){
 		throw "NO QZFL FOUND";
 	}
@@ -589,7 +641,11 @@
 		hasClass: QZFL.css.hasClassName,
 		addClass: QZFL.css.addClassName,
 		removeClass: QZFL.css.removeClassName,
-		contains: QZFL.dom.contains,
+		contains: function(container, child){
+			if(container.nodeType == 3){return false;}
+			return container.contains ? container != child && container.contains(child) :
+				!!(container.compareDocumentPosition(child) & 16);
+		},
 		convertHexColor: QZFL.css.convertHexColor,
 		getScrollLeft: QZFL.dom.getScrollLeft,
 		getScrollTop: QZFL.dom.getScrollTop,
@@ -608,6 +664,42 @@
                 parent.removeChild(node);
             }
             return node;
+		},
+
+		/**
+		 * 加载图片队列
+		 * @param {Array} imgSrcList
+		 * @param {Function} doneCb	完成回调（包括失败）
+		 **/
+		loadImageQueue: function(imgSrcList, doneCb){
+			var len = imgSrcList.length;
+			var count = 0;
+			var infoList = {};
+
+			var allDone = function(){
+				var result = [];
+				ve.lang.each(imgSrcList, function(item, index){
+					result.push(infoList[item]);
+				});
+				doneCb(result);
+			};
+
+			ve.lang.each(imgSrcList, function(src){
+				infoList[src] = {width:null, height:null, src:src};
+				var img = new Image();
+				img.onload = function(){
+					infoList[this.src] = {width: this.width, height: this.height, src:this.src};
+					if(++count == len){
+						allDone();
+					}
+				};
+				img.onerror = function(){
+					if(++count == len){
+						allDone();
+					}
+				};
+				img.src = src;
+			});
 		},
 
 		/**
@@ -1527,7 +1619,7 @@
 		s.setAttribute('charset', option.charset);
 
 		ve.dom.event.add(s, ve.ua.ie && ve.ua.ie < 10 ? 'readystatechange': 'load', function(){
-			if(ve.ua.ie && s.readyState != 'loaded' && s.readyState != 'complete'){
+			if(ve.ua.ie && s.readyState != 'loaded' && s.readyState != 'complete' && ve.ua.ie != 11){
 				return;
 			}
 			setTimeout(function(){
@@ -1541,8 +1633,8 @@
 			sucCb();
 			**/
 		});
-		s.src = option.src;
 		(doc.getElementsByTagName('head')[0] || doc.body).appendChild(s);
+		s.src = option.src;
 	};
 
 	/**
@@ -1598,6 +1690,13 @@
 		(doc.getElementsByTagName('head')[0] || doc.body).appendChild(css);
 	};
 
+	var getParameter = function(name, str){
+		var r = new RegExp("(\\?|#|&)" + name + "=([^&#]*)(&|#|$)");
+		var m = (str || location.href).match(r);
+		return (!m?"":m[2]);
+	};
+
+	ve.net.getParameter = getParameter;
 	ve.net.loadScript = loadScript;
 	ve.net.loadCss = loadCss;
 })(VEditor);
@@ -1655,7 +1754,7 @@
 		}
 	};
 })(VEditor);
-(function(window, document, ve) {
+(function(ve) {
 	var EXT_FILES_LOADED = false;
 	var EDITOR_GUID = 0;
 
@@ -1668,6 +1767,9 @@
 		Editor: function (conf) {
 			var t = this;
 			t.id = conf.id || ('veditor'+(++EDITOR_GUID));
+
+			//启动事件
+			t.__startup_time__ = (new Date()).getTime();
 
 			//快捷键map
 			t._shortcuts = [];
@@ -1682,11 +1784,13 @@
 			t.conf = ve.lang.extend({
 				plugins: '',					//插件列表（格式参考具体代码）
 
-				container: '',					//容器，该配置项与下方三个容器互斥，如果container为一个form元素的话， 下方的3个容器为container父元素
+				container: '',					//容器，该配置项与下方三个容器互斥，如果container为一个textarea元素的话， 下方的3个容器为container父元素
 
 				toolbarContainer: '',			//工具条容器!
-				iframeContainer: '',			//iframe容器!
+				iframeContainer: '',			//iframe容器!	如果设置iframe为textarea，则iframeContainer取该textarea父容器，并关联该textarea
 				statusbarContainer: '',			//状态条容器
+
+				relateContainer: '',			//关联容器（支持textarea或可编辑div等），这里只是单向关联，编辑器数据变化会更新该容器，反之，该容器变化不会更新到编辑器
 
 				placeholder: '',				//placeholder，仅检测文字命中部分，不对其他元素进行校验，
 												//也就是说，如果placeholder = '<div><b>text</b></div>'；那仅校验 text
@@ -1705,69 +1809,90 @@
 				domain: ve.domain || null		//域名
 			}, conf);
 
-			ve.lang.each(['toolbarContainer','statusbarContainer', 'iframeContainer', 'container'], function(n) {
+			ve.lang.each(['toolbarContainer','statusbarContainer', 'relateContainer', 'iframeContainer', 'container'], function(n) {
 				if(t.conf[n]){
 					t.conf[n] = ve.dom.get(t.conf[n]);
 				}
 			});
 
-			//支持表单形式
-			t._useForm = false;
+			//支持 单个表单形式
 			if(t.conf.container){
-				if(t.conf.container.tagName == 'INPUT' || t.conf.container.tagName == 'TEXTAREA'){
-					t.conf.container.style.display = 'none';
-					t._useForm = true;
-					t.conf.placeholder = t.conf.placeholder || t.conf.container.getAttribute('placeholder');
+				if(t.conf.container.tagName == 'TEXTAREA'){
+					t.conf.relateContainer = t.conf.container;
+					t.conf.container = t.conf.container.parentNode;
 				}
-				t.conf.toolbarContainer = t.conf.iframeContainer = t.conf.statusbarContainer = t._useForm ? t.conf.container.parentNode : t.conf.container;
+				t.conf.toolbarContainer = t.conf.iframeContainer = t.conf.statusbarContainer = t.conf.container;
 			}
 
-			//触发事件
-			ve.lang.each(['onInit',
-				'onSelect',
-				'onKeyPress',
-				'onKeyDown',
-				'onKeyUp',
-				'onMouseOver',
-				'onMouseDown',
-				'onMouseUp',
-				'onClick',
-				'onBeforeExecCommand',
-				'onAfterExecCommand',
-				'onInitComplete',
-				'onSelectContent',
-				'onUIRendered',
-				'onBlur',
-				'onFocus',
-				'onBeforeOpenListBox',
-				'onBeforeGetContent',
-				'onGetContent',
-				'onBeforeSetContent',
-				'onSetContent',
-				'onAfterSetContent',
-				'onAfterClearContent',
-				'onPaste',
-				'onAfterPaste',
-				'onResize',
-				'onPluginsInited',
-				'onIframeLoaded',
-				'onAfterUpdateVERange',
-				'onAfterUpdateVERangeLazy',		//懒惰触发事件
-				'onNodeRemoved'], function(n) {
-				t[n] = new ve.EventManager(t);
-			});
+			//支持指定表单作为内容区域形式
+			if(t.conf.iframeContainer.tagName == 'TEXTAREA'){
+				t.conf.relateContainer = t.conf.iframeContainer;
+				t.conf.iframeContainer = t.conf.iframeContainer.parentNode;
+			}
 
-			if(!this.conf.toolbarContainer || !this.conf.iframeContainer){
+			//指定状态条
+			t.conf.statusbarContainer = t.conf.statusbarContainer || t.conf.iframeContainer;
+
+			if(!t.conf.toolbarContainer || !t.conf.iframeContainer){
 				throw('NEED CONTAINER SPECIFIED');
 			}
-			this.conf.statusbarContainer = this.conf.statusbarContainer || this.conf.iframeContainer;
+
+			//关联textarea
+			if(t.conf.relateContainer){
+				t.conf.placeholder = t.conf.placeholder || t.conf.relateContainer.getAttribute('placeholder');
+			}
+
+			//copy容器到editor下
+			ve.lang.each(['toolbarContainer','statusbarContainer', 'relateContainer', 'iframeContainer', 'container'], function(n){
+				t[n] = t.conf[n];
+			});
+
+			//触发事件
+			ve.lang.each([
+				'onSelect',					//选区选择
+				'onKeyPress',				//按键按下
+				'onKeyDown',				//按键按下
+				'onKeyUp',					//按键松开
+				'onMouseOver',				//鼠标over
+				'onMouseDown',				//鼠标按下
+				'onMouseUp',				//鼠标松开
+				'onClick',					//点击
+				'onPaste',					//粘贴事件（支持中断）
+				'onAfterPaste',				//粘贴之后
+
+				'onSelectContent',			//选择内容
+				'onBlur',					//失焦
+				'onFocus',					//聚焦
+				'onBeforeOpenListBox',		//菜单打开
+				'onResize',					//调整大小
+
+				'onBeforeGetContent',		//获取内容之前
+				'onGetContent',				//获取内容（支持中断）
+				'onBeforeSetContent',		//设置内容之前
+				'onSetContent',				//设置内容（支持中断）
+				'onAfterSetContent',		//设置内容之后
+				'onAfterClearContent',		//清除内容之后
+
+				'onPluginsInited',			//插件初始化完成
+				'onIframeInited',			//iframe初始化完成
+				'onInitComplete',			//初始化完成
+
+				'onBeforeExecCommand',		//执行命令之前
+				'onAfterExecCommand',		//执行命令之后
+				'onAfterUpdateVERange',		//更新Range之后
+				'onAfterUpdateVERangeLazy',	//更新Range懒惰触发事件
+
+				'onError'],					//报错
+				function(n) {
+				t[n] = new ve.EventManager(t);
+			});
 		},
 
 		/**
 		 * 加载额外的文件，包括适配器、视图、插件
 		 * @param {function} callback
 		 **/
-		loadExtFiles: function(callback) {
+		_loadExtFiles: function(callback) {
 			var _this = this,
 				fileList = [];
 
@@ -1796,6 +1921,7 @@
 				});
 			}
 
+			console.log('VE _loadExtFiles:', fileList);
 			if(fileList.length){
 				ve.net.loadScript(fileList, callback);
 			} else {
@@ -1819,11 +1945,10 @@
 					if (matches[3]) {
 						ppc = ppc.concat(matches[3].split('+'));
 						url[matches[1].replace(/\(/g, '') || matches[3]] = matches[3] || matches[1];
-					}
-					else {
+					} else {
 						ppc.push(n);
 						url[n] = n;
-				}
+					}
 				});
 			}
 			ve.lang.each(url, function (n, i) {
@@ -1859,13 +1984,16 @@
 
 			//预加载文件
 			if(!EXT_FILES_LOADED){
-				t.loadExtFiles(function(){
+				console.log('VE init --> no ext files loaded');
+				t._loadExtFiles(function(){
 					EXT_FILES_LOADED = true;
+					console.log('VE init --> ext files loaded');
 					t.init();
 				});
 				return;
 			}
 
+			console.log('VE view get');
 			//初始化视图管理器
 			var view = ve.viewManager.get(this.conf.viewer);
 			if (!view){
@@ -1875,67 +2003,182 @@
 			this.viewControl.init(this, this.conf.viewerurl || this.conf.viewer);
 			this.editorcommands = new ve.EditorCommands(this);
 
-			//创建iframe
-			this.createIframe();
 
+			//渲染toolbar放入核心加载成功之后，
+			//避免核心初始化失败，还存在工具条的情况
+			var _crashed, _loading = true;
+			this.onError.add(function(msg, code){
+				console.log('VE onError', msg, code);
+				if(code == VEditor.ERROR.CRASH){
+					_crashed = true;
+				}
+			});
+
+			//使用表单提交数据
+			//这里只能处理换行情况，其他的处理不了，因为如果处理，就意味着html标记信息将被丢失
+			if(t.conf.relateContainer){
+				console.log('VE relateContainer setted');
+				var _isTextarea = t.conf.relateContainer.tagName == 'TEXTAREA';
+				var _set = function(html){
+					if(_isTextarea){
+						t.conf.relateContainer.value = _toStr(html);
+					} else {
+						t.conf.relateContainer.innerHTML = html;
+					}
+				};
+				var _get = function(){
+					if(_isTextarea){
+						return _toHtml(t.conf.relateContainer.value);
+					} else {
+						return t.conf.relateContainer.innerHTML;
+					}
+				};
+				var _toStr = function(html){
+					return html.replace(/<br[^>]*>/g, "\r\n");
+				};
+				var _toHtml = function(str){
+					return str.replace(/\r\n/g, "\n").replace(/\n/g, '<br/>');
+				};
+
+				this.onInitComplete.addFirst(function(){
+					_loading = false;
+					var s = _get();
+					if(s){
+						t.setContent({content:s});
+					}
+				});
+				this.onAfterUpdateVERangeLazy.add(function(){_set(t.getContent());});
+				this.onSetContent.add(function(html){_set(html);});
+				this.onGetContent.addLast(function(html){
+					if(_crashed || _loading){
+						html = _get();
+					}
+					return html;
+				}, true);
+			}
+
+			console.log('VE base layout render');
 			//渲染布局
 			this.viewControl.renderBaseLayout();
 
+			//未崩溃情况下，才进行插件初始化、工具条渲染等操作
+			this.onIframeInited.add(function(){
+				if(!_crashed){
+					t._bindEditorDomEvent();
+
+					//启动插件，这样插件里面的初始化方法可以提供按钮
+					t._launchPlugins();
+
+					//渲染工具条（按钮）
+					t.viewControl.renderToolbar();
+				}
+			});
+
+			//创建iframe
+			this._createIframe();
+
 			if (!ve.ua.ie || !this.conf.domain){
-				t.initIframe();
+				this._initIframe();
 			}
 
-			this._launchPlugins();
-
-			//渲染toolbar
-			this.viewControl.renderToolbar();
-			this.onUIRendered.fire();
-
-			if(t._iframeInited){
+			if(this._iframeInited){
 				//console.log('主脚本检测到t._iframeInited, 执行t._fireInitComplete');
-				t._fireInitComplete();
+				this._fireInitComplete();
 			} else {
 				//console.log('主脚本检测到iframe还没有加载完');
-				t._needFireInitCompleteInInitIframe = true;
+				this._needFireInitCompleteInInitIframe = true;
 			}
-			return t;
+			return this;
+		},
+
+		/**
+		 * 读取编辑器配置
+		 * @param  {String} key
+		 * @param  {String} scope 上下文，可以用插件名称来规避冲突
+		 * @return {Mix}
+		 */
+		getConfig: function(key, scope){
+			if(scope){
+				if(!this.conf[scope]){
+					return undefined;
+				}
+				return this.conf[scope][key];
+			}
+			return this.conf[key];
+		},
+
+		/**
+		 * 设置配置
+		 * @param  {String} key
+		 * @param  {String} val
+		 * @param  {String} scope 上下文，可以用插件名称来规避冲突
+		 */
+		setConfig: function(key, val, scope){
+			if(scope){
+				if(!this.conf[scope]){
+					this.conf[scope] = {};
+				}
+				this.conf[scope][key] = val;
+			}
+			this.conf[key] = val;
+		},
+
+		/**
+		 * 异常处理
+		 * @param  {String} msg		异常message
+		 * @param  {String} code 	异常code
+ 		 * @param  {Mix} data		数据
+		 */
+		exception: function(msg, code, data){
+			var s = new String(msg);
+			s.code = code;
+			s.data = data;
+			this.onError.fire(this, msg, code, data);
+			window.console && window.console.log(msg, code, data);
 		},
 
 		/**
 		 * 创建编辑器iframe
 		 * @deprecate 这里区分了domain情况和对ie等浏览器兼容处理
 		 **/
-		createIframe: function(){
+		_createIframe: function(){
+			console.log('VE start create IFRAME');
 			var _this = this;
 			this.iframeHTML = (ve.ua.ie && ve.ua.ie < 9 ? '': '<!DOCTYPE html>');
 			this.iframeHTML += '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />';
 
+
+			console.log('VE config domain:', this.conf.domain);
 			//设置了domain
 			var frameUrl = 'javascript:;';
 			if (this.conf.domain) {
 				if (ve.ua.ie){
-					frameUrl = 'javascript:(function(){document.open();document.domain="' + this.conf.domain + '";var ed = window.parent.VEditor.get("' + this.id + '");document.write(ed.iframeHTML);document.close();ed.initIframe();})()';
+					frameUrl = 'javascript:(function(){document.open();document.domain="' + this.conf.domain + '";var ed = window.parent.VEditor.get("' + this.id + '");document.write(ed.iframeHTML);document.close();ed._initIframe();})()';
 				}
 				this.iframeHTML += '<script type="text/javascript">document.domain = "' + this.conf.domain + '";</script>';
 			}
 			this.iframeHTML += '</head><body></body></html>';
 
+			console.log('VE frameUrl:', frameUrl);
+			console.log('VE iframeHTML:', this.iframeHTML);
+
 			//创建<iframe>
 			this.iframeElement = ve.dom.create('iframe', {
 				id: this.id + '_Iframe',
-				src: frameUrl,
+				//src: frameUrl,
 				frameBorder: '0',
 				allowTransparency: 'true',
 				style: {
-					width : '100%',
-					height : this.conf.height ? this.conf.height+'px' : 'auto'
+					width: '100%',
+					height: this.conf.height ? this.conf.height+'px' : 'auto'
 				}
 			});
-			ve.dom.event.add(this.iframeElement, 'load', function(){	//加载事件必须优先于append操作
-				_this.onIframeLoaded.fire(_this.iframeElement);
-			});
-			this.iframeContainer = ve.dom.create('div', {'class': 'veIframeContainer editor_iframe_container_' + this.id, 'style': {width: this.conf.width}});
-			this.iframeContainer.appendChild(this.iframeElement);
+			var icWrap = ve.dom.create('div', {'class': 'veIframeContainer editor_iframe_container_' + this.id, 'style': {width: this.conf.width}});
+			icWrap.appendChild(this.iframeElement);
+			this.iframeContainer.appendChild(icWrap);
+			this.iframeElement.src = frameUrl;
+
+			//this.iframeElement.src = '';
 		},
 
 		_initCompleteFired: false,
@@ -1950,74 +2193,72 @@
 				//或者可以考虑这个t.onInitComplete.add可以用triggle代替
 				//console.log('命中fire逻辑，延时100ms后fire');
 				t._initCompleteFired = true;
+
 				setTimeout(function(){
-					t.onInitComplete.fire(t, t);
-				}, 100);
+					var tm = (new Date().getTime()) - t.__startup_time__;
+					t.onInitComplete.fire(t, t, tm);
+				}, 0);
 			}
 		},
 
 		//是否需要在initIframe里面执行initComplete事件
 		_needFireInitCompleteInInitIframe: false,
 		_iframeInited: false,
-		initIframe: function () {
+		_initIframe: function () {
+			console.log('VE _iframeInited');
 			if(this._iframeInited){
 				return;
 			}
+			var t = this, doc;
 
-			var t = this, d;
 			try {
-				d = this.getDoc();
-			} catch(ex){
-				throw('IE IFRAME访问没有权限');
-			}
+				console.log('VE start to open doc');
+				doc = this.getDoc();
 
-			// if(!d.body){
-			// 	console.log('d.body 不命中', d.body);
-			// 	window.setTimeout(function(){t.initIframe();}, 1000);
-			// 	return;
-			// }
+				//[chrome] 关闭该选项会导致app页面有时候不触发window.unload事件
+				//估计旧版的chrome不会有这个问题
+				doc.open();
+				doc.write(this.iframeHTML);
+				doc.close();
 
-			//chrome在这里有bug，关闭该选项会导致app页面有时候不触发window.unload事件
-			//估计旧版的chrome不会有这个问题
-			d.open();
-			d.write(t.iframeHTML);
-			d.close();
-
-			if(ve.ua.ie){
-                d.body.disabled = true;
-                d.body.contentEditable = true;
-                d.body.disabled = false;
-			} else {
-				d.body.contentEditable = true;
-                d.body.spellcheck = false;
-			}
-
-			if(this.conf.height){
-				d.body.style.height = t.conf.height + 'px';
-			}
-
-			d.body.innerHTML = this.getEmptyHelperHtml();
-			t.bindEditorDomEvent();
-			t.onInit.fire();
-
-			if (t.conf.styleWithCSS) {
-				try {
-					d.execCommand("styleWithCSS", 0, true);
-				} catch (e) {
-					try {
-						d.execCommand("useCSS", 0, true);
-					} catch (e) {}
+				if(ve.ua.ie){
+	                doc.body.disabled = true;
+	                doc.body.contentEditable = true;
+	                doc.body.disabled = false;
+				} else {
+					doc.body.contentEditable = true;
+	                doc.body.spellcheck = false;
 				}
+
+				console.log('VE doc opened');
+
+				if(this.conf.height){
+					doc.body.style.height = this.conf.height + 'px';
+				}
+				if (this.conf.styleWithCSS) {
+					try {
+						doc.execCommand("styleWithCSS", 0, true);
+					} catch (e) {
+						try {
+							doc.execCommand("useCSS", 0, true);
+						} catch (e) {}
+					}
+				}
+				if(this.conf.editorCss){
+					ve.dom.insertStyleSheet(null, this.conf.editorCss, doc);
+				}
+				doc.body.innerHTML = this.conf.placeholder || this.getEmptyHelperHtml();
+			} catch(ex){
+				t.exception('iframe没有访问权限', VEditor.ERROR.CRASH);
 			}
 
-			if(t.conf.editorCss){
-				ve.dom.insertStyleSheet(null, t.conf.editorCss, d);
-			}
+			console.log('VE iframe inited');
 
-			t._iframeInited = true;
+			this._iframeInited = true;
+			this.onIframeInited.fire(this.iframeElement);	//iframe初始化完成
 
-			if(t._needFireInitCompleteInInitIframe){
-				t._fireInitComplete();
+			if(this._needFireInitCompleteInInitIframe){
+				this._fireInitComplete();
 			}
 		},
 
@@ -2124,9 +2365,9 @@
 
 			if(typeof(cmd) == 'function'){
 				fn = cmd;
-			} else if(this.editorcommands.hasCommand(cmd)){
+			} else if(this.hasCommand(cmd)){
 				fn = function(){
-					_this.editorcommands.execCommand(cmd, false);
+					_this.execCommand(cmd, false);
 					return false;
 				}
 			} else {
@@ -2261,6 +2502,7 @@
 			var _this = this;
 
 			if(!rng){
+				this.getWin().focus();
 				rng = new ve.Range(this.getWin(), this.getDoc());
 				rng.convertBrowserRange();
 			}
@@ -2329,7 +2571,42 @@
 			}
 
 			//执行命令
-			this.editorcommands.execCommand('insertHtml', params.content);
+			this.execCommand('insertHtml', params.content);
+		},
+
+		/**
+		 * 插图
+		 * @deprecated 如果提供最大宽度或高度，图片将按照等比方式压缩
+		 * @param  {Object} imgData   图片属性信息 imgData.src 为必须内容
+		 * @param  {Number} maxWidth  最大宽度
+		 * @param  {Number} maxHeight 最大高度
+		 * @param {Function} callback 图片插入完成回调
+		 */
+		insertImage: function(imgData, maxWidth, maxHeight, callback){
+			var _this = this;
+			var _ins = function(data){
+				var html = '', attrs = [];
+				for(var i in data){
+					attrs.push(i+'="'+data[i]+'"');
+				}
+				html = attrs.join(' ');
+				_this.insertHtml({content:'<img '+html+'/>'});
+				setTimeout(function(){
+					_this.resize();
+					callback && callback();
+				}, 10);
+			};
+
+			if((maxWidth || maxHeight) && !(imgData.width || imgData.height)){
+				ve.dom.loadImageQueue([imgData.src], function(itemList){
+					var reg = ve.lang.resize(itemList[0].width, itemList[0].height, maxWidth, maxHeight);
+					imgData.width = reg[0];
+					imgData.height = reg[1];
+					_ins(imgData);
+				});
+			} else {
+				_ins(imgData);
+			}
 		},
 
 		/**
@@ -2379,10 +2656,8 @@
 		getContent: function () {
 			this.onBeforeGetContent.fire(this);
 			var html = this.getBody().innerHTML || '';
-			if(html){
-				html = this.onGetContent.fire(this, html);
-				html = html.replace(ve.fillCharReg, '');
-			}
+			html = this.onGetContent.fire(this, html) || '';
+			html = html.replace(ve.fillCharReg, '') || '';
 			return html;
 		},
 
@@ -2411,7 +2686,7 @@
 				s = rng.startContainer,
 				doc = this.getDoc();
 
-			if(s.nodeType == 1){
+			if(s.parentNode && s.nodeType == 1){
 				var _psNode;
 				_psNode = doc.createElement('span');
 				_psNode.style.cssText = 'display:inline-block; height:1px;width:1px;';
@@ -2428,7 +2703,7 @@
 				var region = ve.dom.getRegion(_psNode);
 				ve.dom.remove(_psNode);
 				retVal = region.top + region.height;
-			} else if(s.nodeType == 3){
+			} else if(s.parentNode &&s.nodeType == 3){
 				var _psNode = doc.createElement('span');
 					ve.dom.insertBefore(_psNode, s);
 					_psNode.style.cssText = 'display:inline-block; height:1px;width:1px;';
@@ -2573,7 +2848,7 @@
 		/**
 		 * 绑定编辑器相关的事件
 		 */
-		bindEditorDomEvent: function () {
+		_bindEditorDomEvent: function () {
 			var t = this, w = t.getWin(), d = t.getDoc(), b = t.getBody();
 
 			//输入法keyCode监测
@@ -2589,16 +2864,7 @@
 				t.usingIM = !!IMK_MAP[e.keyCode];
 			});
 
-			//修正输入法下面的切换（这里的空白键不那么准确，需要依赖输入法的按键设置）
-			ve.dom.event.add(b, 'keyup', function(e){
-				if(e.keyCode == 32){
-					t.usingIM = false;
-				}
-			});
 			ve.dom.event.add(b, 'mousedown', function(){
-				t.usingIM = false;
-			});
-			t.onAfterUpdateVERange.addFirst(function(){
 				t.usingIM = false;
 			});
 
@@ -2619,13 +2885,6 @@
 			if (t.conf.autoAdjust) {
 				t.onAfterUpdateVERangeLazy.add(function(){
 					t.resize();
-				});
-			}
-
-			//使用表单提交数据
-			if(t._useForm){
-				t.onAfterUpdateVERangeLazy.add(function(){
-					t.conf.container.value = t.getContent();
 				});
 			}
 
@@ -2716,7 +2975,6 @@
 									}catch (ev){
 										currentLI = '';
 									}
-									//console.log(currentLI.innerHTML);
 									if(currentLI && currentLI.previousSibling && currentLI.previousSibling.tagName == 'LI'){ //非列表内第一个li
 										rng.startContainer = currentLI.previousSibling;
 										rng.startOffset = currentLI.previousSibling.childNodes.length;
@@ -2949,7 +3207,7 @@
 					//按着shift松开其他按键[方向键]这种情况不能更新range，否则会出现用户选择不全的情况
 				}
 				//去除 ctrl+v，中文输入法冲突
-				else if(!e.ctrlKey && e.keyCode != 17 && !t.usingIM){
+				else if(!e.ctrlKey && e.keyCode != 17 && !t.usingIM && !e.shiftKey){
 					t.updateLastVERange();
 				}
 			});
@@ -2958,6 +3216,14 @@
 			//粘贴后
 			t.onAfterPaste.addFirst(function(){
 				t.updateLastVERange();
+			});
+
+			//执行命令之前，检测当前是否还在输入法状态
+			t.onBeforeExecCommand.addFirst(function(){
+				if(t.usingIM){
+					t.updateLastVERange();
+					t.usingIM = false;
+				}
 			});
 
 			//更新VERange
@@ -2990,9 +3256,6 @@
 					}
 				});
 				t.onKeyDown.addLast(function(){updatePh();});
-				t.onInitComplete.add(function(obj){
-					t.setContent({content:t.conf.placeholder, addHistory:false});
-				});
 			}
 		},
 
@@ -3111,7 +3374,7 @@
 			return false;
 		}
 	};
-})(window, document, VEditor);
+})(VEditor);
 /**
  * 编辑器核心命令集合
  * 这里包含了各种例如加粗、字体排版等基本命令
@@ -3127,7 +3390,7 @@
 			this.commands = {};
 
 			//扩展editorcommands方法到editor
-			ve.lang.each(['addCommand'], function(method){
+			ve.lang.each(['addCommand','removeCommand','hasCommand','execCommand'], function(method){
 				editor[method] = function(){
 					return _this[method].apply(_this, ve.lang.arg2Arr(arguments));
 				};
@@ -4361,6 +4624,10 @@
 				}
 
 				var bookmark = this.createBookmark(), start = bookmark.start, end;
+				if(!start || !start.parentNode || !start.parentNode.outerHTML){
+					console.log('哎呀，错误发生了，有人在不断的搞焦点');
+					return;
+				}
 
 				ieRng = this.doc.body.createTextRange();
 				try {ieRng.moveToElementText(start);} catch(ex){};
@@ -6347,7 +6614,7 @@
 				if(typeof(t.conf.cmd) == 'function'){
 					t.conf.cmd.apply(_this);
 				} else if(t.conf.cmd){
-					t.conf.editor.editorcommands.execCommand(t.conf.cmd);
+					t.conf.editor.execCommand(t.conf.cmd);
 				}
 				_this.onClick.fire(_this);
 			});
@@ -6863,17 +7130,19 @@
 
 		/**
 		 * 渲染布局
+		 * 包括：处理工具条、处理状态条容器、新建tm
 		**/
 		renderBaseLayout: function(){
 			var editor = this.editor;
 			editor.toolbarManager = new ve.ui.ToolbarManager(editor, {name: 'default'});
 
-			editor.toolbarContainer = editor.toolbarManager.createContainer({'class':'veToolbarContainer editor_toolbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
-			editor.statusbarContainer = ve.dom.create('div', {'class': 'veStatusbarContainer editor_statusbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
+			var tc = editor.toolbarManager.createContainer({'class':'veToolbarContainer editor_toolbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
+			editor.toolbarContainer.appendChild(tc);
+			editor.toolbarContainer = tc;
 
-			ve.lang.each(['toolbarContainer','statusbarContainer', 'iframeContainer'], function(n) {
-				editor.conf[n].appendChild(editor[n]);
-			});
+			var sc = ve.dom.create('div', {'class': 'veStatusbarContainer editor_statusbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
+			editor.statusbarContainer.appendChild(sc);
+			editor.statusbarContainer = sc;
 		},
 
 		/**
@@ -6898,15 +7167,21 @@
 				}
 			}
 
-			ve.lang.each(buttonConfig, function(gp){
-				var tb = tm.createToolbar(gp.group, {'class':gp.className});
+			ve.lang.each(buttonConfig, function(gp, idx){
+				var lastTbClass = (idx+1 == buttonConfig.length) ? ' veToolbar_last' : '';
+				var tb = tm.createToolbar(gp.group, {'class': gp.className+lastTbClass});
 				if(gp.buttons){
 					var buttons = gp.buttons.replace(/\s/g,'').split(',');
-					ve.lang.each(buttons, function(btnName){
-						tb.add(tm.getUIControlFromCollection(btnName));
+					ve.lang.each(buttons, function(btnName, idx2){
+						var btn = tm.getUIControlFromCollection(btnName);
+						if(btn){
+							idx2 == (buttons.length - 1) && (btn.normalClass += ' veButton_last');
+							tb.add(btn);
+						}
 					});
 				}
 			});
+
 			//渲染工具条
 			tm.render();
 		}
@@ -6923,15 +7198,20 @@
 		init: function (editor, url) {
 			var _this = this;
 			this.editor = editor;
-			this.editor.onKeyDown.add(function(e){
-				if(e.keyCode == 13 && !e.ctrlKey){
-					_this.editor.tryIO('addHistory', function(fn){return fn()});
-					_this.insertNewLine();
-					_this.editor.tryIO('addHistory', function(fn){return fn()});
-					ve.dom.event.cancel(e);
-					return false;
-				}
-			});
+
+			var _bind = function(addHistory){
+				_this.editor.onKeyDown.add(function(e){
+					if(e.keyCode == 13 && !e.ctrlKey){
+						_this.editor.updateLastVERange();	//这里需要先update，才能保证addHistory里面的range正确
+						addHistory && addHistory();
+						_this.insertNewLine();	//这里写这个更新range的原因是：updateLastVERange是在keyup时触发，因此这里keydown管不到
+						addHistory && addHistory();
+						ve.dom.event.cancel(e);
+						return false;
+					}
+				});
+			};
+			this.editor.tryIO('addHistory', _bind, _bind);
 		},
 
 		insertNewLine: function(){
@@ -7746,7 +8026,7 @@
 			var _this = this;
 
 			var _COM_SET_FLAG;
-			this.editor.onBeforeSetContent.add(function(params){
+			_this.editor.onBeforeSetContent.add(function(params){
 				_COM_SET_FLAG = params.addHistory;
 				if(params.addHistory){
 					_this.add();
@@ -7762,7 +8042,7 @@
 			});
 
 			//由于当前add的是在 keycount足够的时候执行，所以这里要补一下
-			this.editor.onBeforeExecCommand.add(function(cmd){
+			_this.editor.onBeforeExecCommand.add(function(cmd){
 				if(cmd == 'insertHtml' && _COM_SET_FLAG){
 					//忽略setContent(addHistory:true)情况
 					//那边的已经设置了
@@ -7798,15 +8078,6 @@
 				16:1, 17:1, 18:1,	//shift, ctrl, alt
 				37:1, 38:1, 39:1, 40:1	//方向键
 			};
-
-			_this.editor.onKeyDown.addLast(function(e){
-				var rng = _this.editor.getVERange();
-
-				//去除选中态、ctrl+z, ctrl+y冲突、输入法冲突
-				if(!rng.collapsed && !e.ctrlKey && !_this.editor.usingIM){
-					_this.add();
-				}
-			});
 
 			//处理添加逻辑
 			_this.editor.onKeyUp.addLast(function(e){
@@ -7844,7 +8115,11 @@
 
 			this.editor.addIO('addHistory', function(){
 				return _this.add();
-			})
+			});
+			this.editor.addIO('resetHistory', function(){
+				var args = ve.lang.arg2Arr(arguments);
+				return _this.reset.apply(_this, args);
+			});
 		},
 
 		/**
@@ -8018,7 +8293,6 @@
 		 * @param {String} html
 		 */
 		reset: function(html){
-			//console.log('调用reset', html);
 			html = html || '';
 			html = ve.string.trim(html);
 			CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;
@@ -8117,7 +8391,7 @@
 				},
 				onChange: function(val){
 					var curList = this;
-					_this.editor.editorcommands.execCommand(curList.conf.cmd, curList.conf.ui, val);
+					_this.editor.execCommand(curList.conf.cmd, curList.conf.ui, val);
 				},
 				items: [
 					['宋体','宋体', 'style=\"font-family:Simson\"'],
@@ -8151,7 +8425,7 @@
 					});
 				},
 				onChange: function(val){
-					_this.editor.editorcommands.execCommand(this.conf.cmd, this.conf.ui, val);
+					_this.editor.execCommand(this.conf.cmd, this.conf.ui, val);
 				},
 				items: [
 				['10px','7(10px)', 'style=\"font-size:10px\"', null, 'padding-top:0px'],
@@ -8184,7 +8458,7 @@
 				},
 				onClick: function(){
 					var cmd = this.toggleActive() ? 'Bold' : 'UnBold';
-					_this.editor.editorcommands.execCommand(cmd);
+					_this.editor.execCommand(cmd);
 				}
 			});
 
@@ -8199,7 +8473,7 @@
 				},
 				onClick: function(){
 					var cmd = this.toggleActive() ? 'Italic' : 'UnItalic';
-					_this.editor.editorcommands.execCommand(cmd);
+					_this.editor.execCommand(cmd);
 				}
 			});
 
@@ -8214,7 +8488,7 @@
 				},
 				onClick: function(){
 					var cmd = this.toggleActive() ? 'Underline' : 'UnUnderline';
-					_this.editor.editorcommands.execCommand(cmd);
+					_this.editor.execCommand(cmd);
 				}
 			});
 		}
@@ -8731,7 +9005,7 @@
 
 				ve.dom.event.add(mBtn, 'mouseover', function(){ve.dom.addClass(btnDom, 'veColorDropBtn_hover_main');});
 				ve.dom.event.add(mBtn, 'mouseout', function(){ve.dom.removeClass(btnDom, 'veColorDropBtn_hover_main');});
-				ve.dom.event.add(mBtn, 'click', function(){_this.editor.editorcommands.execCommand('color', _CUR_COLOR);});
+				ve.dom.event.add(mBtn, 'click', function(){_this.editor.execCommand('color', _CUR_COLOR);});
 
 				ve.dom.event.add(lBtn, 'mouseover', function(){ve.dom.addClass(btnDom, 'veColorDropBtn_hover_drop');});
 				ve.dom.event.add(lBtn, 'mouseout', function(){ve.dom.removeClass(btnDom, 'veColorDropBtn_hover_drop');});
@@ -8739,7 +9013,7 @@
 					if(!colorPicker){
 						loadColorPicker(pickerUrl, btnDom, _this.editor, function(color){
 							_this.updateControlColor(color);
-							_this.editor.editorcommands.execCommand('color', color);
+							_this.editor.execCommand('color', color);
 						},
 						function(picker){
 							colorPicker = picker;
@@ -8943,7 +9217,7 @@
 
 			//office图片保留
 			//这里只有ie6需要，其他浏览器已经自动生成了<img>标签
-			if(ve.ua.ie && ve.ua.ie <= 8){
+			if(ve.ua.ie){
 				str = processStrByReg(str, [[/<v\:imagedata\s([^>]*)>/gi]], this.convOfficeImg);
 			}
 
@@ -9633,12 +9907,366 @@
 	};
 }) (VEditor);
 /**
- * SOSO表情插件
+ * 空间默认表情
  * @author sasumi
  * @build 20110321
  */
 (function(ve){
+	function getPos(obj) {
+	    var obj1 = obj2 = obj;
+	    var l =obj.offsetLeft; var t = obj.offsetTop;
+	    while (obj1=obj1.offsetParent)
+	    	l += obj1.offsetLeft;
+	    while (obj2=obj2.offsetParent)
+	    	t += obj2.offsetTop;
+
+	    var rg = QZFL.dom.getPosition(obj);
+	    return {
+	    	top: t,
+	    	left: l,
+	    	width: rg.width,
+	    	height: rg.height
+	    };
+	}
+
+	/**
+	 * 表情库选择器
+		*
+	 * @namespace
+	 * @type
+	 */
+	var QzoneEmotion = {
+		/**
+		 * 表情风格存放路径 <br/> 通常显示表情后,都回加载以下路径的表情风格 <br/> themePath + theme + ".js"
+			*
+		 * @type String
+		 */
+		_themePath : "http://imgcache.qq.com/qzone/em/theme",
+
+		_emotionList : {},
+
+		/**
+		 * 绑定表情按钮
+			*
+		 * @param {string|element} element 对象或则对象的id
+		 * @return QzoneEmotionObject
+		 * @see QzoneEmotionObject
+		 *      @example
+		 *      <br/>
+			*
+		 * QzoneEmotion.bind("div");<br/>
+		 * @return QzoneEmotionPanel
+		 */
+		bind : function(element, theme, editor) {
+			/**
+			 * @default "defalut"
+			 */
+			theme = theme || "default";
+			return new QzoneEmotionPanel(element, theme, this._themePath, editor);
+		},
+
+		/**
+		 * 设置表情风格的主要路径 皮肤的主路径只要设置一次即可,默认是空值 通常QZFL的皮肤都是放在
+		 * http://imgcache.qq.com/qzone/em/theme 目录下.
+			*
+		 * @param {string} path 表情风格主要路径
+		 */
+		setThemeMainPath : function(path) {
+			this._themePath = path;
+		},
+
+		/**
+		 * 添加表情
+			*
+		 * @param {string} emotionName 表情名称
+		 * @param {object} emotionPackage 表情包
+		 */
+		addEmotionList : function(emotionName, emotionPackage) {
+			this._emotionList[emotionName] = emotionPackage;
+		},
+
+		/**
+		 * 获取表情包
+			*
+		 * @param {string} emotionName 表情名称
+		 */
+		getEmotionPackage : function(emotionName) {
+			return this._emotionList[emotionName];
+		}
+	};
+
+	/**
+	 * 表情面板对象
+		*
+	 * @deprecated 不要直接使用这个构造函数创建对象
+	 * @constructor
+	 */
+	var QzoneEmotionPanel = function(element, theme, themePath, editor) {
+		/**
+		 * 编辑器对象
+		 */
+		this.editor = editor;
+
+		/**
+		 * 触发表情选择器的按钮对象
+		 */
+		this.element = element;
+
+		/**
+		 * 表情包名称
+		 */
+		this.theme = theme;
+
+		/**
+		 * 表情面板
+		 */
+		this.panel = null;
+
+		/**
+		 * 表情包
+		 */
+		this.package = null;
+
+		/**
+		 * 表情库路径
+			*
+		 * @ignore
+		 * @private
+		 */
+		this._jsPath = themePath + "/" + this.theme + ".js";
+
+		/**
+		 * 表情样式路径
+			*
+		 * @private
+		 */
+		this._cssPath = themePath + "/" + this.theme + ".css";
+
+		/**
+		 * @private
+		 */
+		this._emPreview = null;
+
+		/**
+		 * @private
+		 */
+		this._init();
+
+		/**
+		 * 选择表情
+			*
+		 * @event
+		 */
+		this.onSelect = function(){};
+
+		/**
+		 * 当表情框显示后
+			*
+		 * @param {element} panel 表情面板
+		 * @param {element} target 激活表情框的对象
+		 * @event
+		 */
+		this.onShow = function(){};
+
+		/**
+		 * 是否隐藏
+			*
+		 * @type boolean
+		 */
+		this._isHide = true;
+	};
+
+	/**
+	 * 初始化表情面板
+	 */
+	QzoneEmotionPanel.prototype._init = function() {
+		this.panel = document.createElement('div');
+		this.panel.style.cssText = 'display:none;position:absolute;border:1px solid #999;padding:3px;background:#fff;font-size:12px;;z-index:10001';
+		this.panel.className = "qzfl_emotion_panel";
+		document.body.appendChild(this.panel);
+		ve.dom.event.add(this.element, "click", ve.lang.bind(this, this.show));
+		ve.dom.event.add(this.panel, "click", ve.lang.bind(this, this.select));
+	};
+
+	/**
+	 * 加载表情
+	 */
+	QzoneEmotionPanel.prototype._loadTheme = function() {
+		if (this.package) { // 如果表情包已经添加则直接显示
+			this._show();
+		} else { // 如果表情包没有加载则自动加载
+			this.panel.innerHTML = "正在加载表情...";
+			this.panel.style.display = "";
+			this.panel.style.position = "absolute";
+
+			var _this = this;
+			ve.net.loadScript(this._jsPath, function(){
+				_this.package = QzoneEmotion.getEmotionPackage(_this.theme);
+				_this._show();
+			});
+			ve.net.loadCss(this._cssPath);
+		}
+	};
+
+	/**
+	 * 显示表情
+		*
+	 */
+	QzoneEmotionPanel.prototype.show = function(e) {
+		this._loadTheme();
+		ve.dom.event.preventDefault(e);
+	};
+
+	QzoneEmotionPanel.prototype._show = function() {
+		// 坐标修正
+		this._build();
+
+		var targetPos = getPos(this.element);
+		var panelSize = ve.dom.getSize(this.panel);
+
+		var left = targetPos.left,
+			top = targetPos.top + targetPos.height;
+
+		//防止iframe覆盖
+		if(window.frameElement){
+			var frameSize = ve.dom.getSize(frameElement);
+			if(targetPos.left + panelSize[0] > frameSize[0]){
+				left = frameSize[0] - panelSize[0];
+			}
+			if(targetPos.top + panelSize[1] > frameSize[1]){
+				top = frameSize[1] - panelSize[1];
+			}
+		}
+		this.panel.style.top = top + 'px';
+		this.panel.style.left = left + 'px';
+
+		if (!this._bindD) {
+			this._bindD = ve.lang.bind(this, this.hide);
+			this._bindM = ve.lang.bind(this, this._mousemove);
+
+			ve.dom.event.add(document, "mousedown", this._bindD);
+			ve.dom.event.add(document, "mousemove", this._bindM);
+		}
+
+		this._isHide = false
+		this.onShow(this.panel, this.element);
+	};
+
+	/**
+	 * 建立表情面板
+	 */
+	QzoneEmotionPanel.prototype._build = function() {
+		var html = ['<div id="emPreview_' + this.theme + '" class="qzfl_emotion_preview_' + this.theme + '" style="display:none"><img src=""/><span></span></div>', '<ul style="width:470px;" class="qzfl_emotion_' + this.theme + '">'];
+		for (var i = 0; i < this.package.length; i++) {
+			html.push('<li><a href="javascript:;" emotionid="' + i + '" onclick="return false;"><div emotionid="' + i + '" class="icon emotion_' + this.theme + '_' + i + '"></div></a></li>')
+		}
+		html.push('</ul>');
+
+		this.panel.innerHTML = html.join("");
+		this.panel.style.display = "";
+		this._lastEmotion = null;
+		this._emPreview = ve.dom.get("emPreview_" + this.theme);
+		this._emPreImg = this._emPreview.getElementsByTagName("img")[0];
+		this._emPreText = this._emPreview.getElementsByTagName("span")[0];
+		this._panelPosition = getPos(this.panel);
+	};
+
+	/**
+	 * 隐藏表情框
+	 */
+	QzoneEmotionPanel.prototype.select = function(e) {
+		var target = ve.dom.event.getTarget(e);
+		var _eID = target.getAttribute("emotionid");
+		if (_eID) {
+
+			this.onSelect({
+				id : _eID,
+				fileName : this.package.filename[_eID],
+				package : this.package
+			});
+
+			this._hide();
+		}
+
+		//取消浏览器的默认事件
+		ve.dom.event.preventDefault(e);
+	};
+
+	/**
+	 * 鼠标移动
+	 */
+	QzoneEmotionPanel.prototype._mousemove = function(e) {
+		var target = ve.dom.event.getTarget(e);
+		var _eID = target.getAttribute("emotionid");
+
+		if (ve.dom.isAncestor(this.panel, target)) {
+			if (_eID && this._lastEmotion != _eID) {
+				this._emPreview.style.display = "";
+				this._lastEmotion = _eID;
+
+				// 修正预览框位置
+				if (ve.dom.event.mouseX(e) < this._panelPosition.left + this._panelPosition.width / 2) {
+					this._emPreview.style.left = "";
+					this._emPreview.style.right = "3px";
+				} else {
+					this._emPreview.style.left = "3px";
+					this._emPreview.style.right = "";
+				}
+
+				this._emPreImg.src = this.package.filename[_eID];
+				this._emPreText.innerHTML = this.package.titles[_eID] || "";
+			}
+		} else {
+			this._lastEmotion = null;
+			this._emPreview.style.display = "none";
+		}
+	};
+
+	/**
+	 * 隐藏表情框
+	 */
+	QzoneEmotionPanel.prototype.hide = function(e) {
+		if (this._isHide) {
+			return;
+		}
+
+		var target = ve.dom.event.getTarget(e);
+		if (target == this.panel || ve.dom.isAncestor(this.panel, target)) {
+
+		} else {
+			this._hide();
+		}
+	};
+
+	/**
+	 * 隐藏表情框
+		*
+	 * @ignore
+	 * @see QzoneEmotionPanel.prototype.hide
+	 */
+	QzoneEmotionPanel.prototype._hide = function() {
+		this.panel.style.display = "none";
+		this._emPreview = null;
+		ve.dom.event.remove(document, "mousedown", this._bindD);
+		ve.dom.event.remove(document, "mousemove", this._bindM);
+		delete this._bindD;
+		delete this._bindM;
+		this._isHide = true;
+	};
+
+	//非QZONE环境适配
+	window.QZONE = window.QZONE || {widget:{}};
+	if(!QZONE.widget){
+		QZONE.widget = {emotion:QzoneEmotion};
+	} else {
+		QZONE.widget.emotion = QzoneEmotion;
+	}
+
 	var HOST = 'http://i.gtimg.cn';
+	if(!window.imgcacheDomain){
+		window.imgcacheDomain = 'i.gtimg.cn';
+	}
+
 	if(window.imgcacheDomain){
 		if(imgcacheDomain.indexOf('http://') == 0){
 			HOST = imgcacheDomain;
@@ -9647,77 +10275,54 @@
 		}
 	}
 
-	ve.lang.Class('VEditor.plugin.SOSOEmotion', {
+	ve.lang.Class('VEditor.plugin.Emotion', {
 		bEmotionLoaded: false,
-		btnElement: null,
 		editor: null,
-		jsPath: 'http://image.soso.com/js/sosoexp_platform.js',
+		emotionPanel: null,
 
 		init: function (editor, url) {
 			var _this = this;
 			this.editor = editor;
-
 			this.btn = this.editor.createButton('emotion', {
 				'class': 'veEmotion',
 				title: '表情',
 				cmd: function(){
-					_this.btnElement = _this.btn.getDom();
-					_this.show();
+					if(!_this.emotionPanel){
+						_this.emotionPanel = QzoneEmotion.bind(_this.btn.getDom(), null, _this.editor);
+						_this.emotionPanel.onSelect = function(imgObj){
+							_this.execute(imgObj);
+						};
+						_this.emotionPanel.show();
+					}
 				}
 			});
-
 			this.editor.onClick.add(function(){_this.hide()});
 		},
 
+		execute: function(emoObj){
+			if(emoObj){
+				var src = emoObj.fileName;
+				if(src.indexOf('/') == 0){
+					src = HOST + src;
+				}
+				var title = emoObj.package.titles[emoObj.id];
+				var html = '<img src="'+src+'" alt="'+title+'" />&nbsp;';
+				this.editor.insertHtml({content:html});
+			}
+		},
+
 		show: function(){
-			var _this = this;
+			_this._waitingPanel.style.display = "none";
 
-			//木有加载过文件
-			if(typeof SOSO_EXP !== "object"){
-				QZFL.imports(this.jsPath, function(){
-					if(typeof SOSO_EXP === "object") {
-						SOSO_EXP.Register(30001, 'qzone', _this.btnElement, 'bottom', _this.editor, function(a,b){
-							_this.insertEmotion(b);
-						});
-						_this.btnElement.setAttribute('binded', '1');
-						SOSO_EXP.Platform.popupBox(_this.btnElement);
-					}
-				});
-			}
-
-			//木有绑定过事件
-			else if(!_this.btnElement.getAttribute('binded')){
-				SOSO_EXP.Register(30001, 'qzone', _this.btnElement, 'bottom', _this.editor, function(a,b){
-					_this.insertEmotion(b);
-				});
-				SOSO_EXP.Platform.popupBox(_this.btnElement);
-			}
 		},
 
-		/**
-		 * 插入soso表情
-		 * @param {String} sosoEmotionUrl soso表情地址
-		 **/
-		insertEmotion: function(sosoEmotionUrl){
-			sosoEmotionUrl = sosoEmotionUrl.replace(/^http:\/\/cache.soso.com\/img\/img\/e(\d{1,3}).gif/gi, "/qzone/em/e$1.gif");  // 替换默认表情
-			if(sosoEmotionUrl.indexOf('/') == 0){
-				sosoEmotionUrl = HOST + sosoEmotionUrl;
-			}
-			var html = '<img src="'+sosoEmotionUrl+'"/>&nbsp;';
-			this.editor.insertHtml({content:html});
-		},
-
-		/**
-		 * 隐藏表情，由于表情那边木有提供相关关闭窗口的接口，
-		 * 当前只能这么干干了。
-		 */
 		hide: function(){
-			if(typeof(SOSO_EXP) == 'object'){
-				SOSO_EXP.Platform.hideBox();
+			if(this.emotionPanel){
+				this.emotionPanel.hide();
 			}
 		}
 	});
-	ve.plugin.register('sosoemotion', VEditor.plugin.SOSOEmotion);
+	ve.plugin.register('emotion', VEditor.plugin.Emotion);
 })(VEditor);
 /**
  * 图片工具条插件
@@ -9759,11 +10364,6 @@
 			});
 
 			this.editor.onKeyDown.add(function(e){
-				_this.hideTools();
-			});
-
-			// 删除图片后的处理
-			this.editor.onNodeRemoved.add(function() {
 				_this.hideTools();
 			});
 
@@ -9891,20 +10491,20 @@
 
 				ve.dom.event.add(ve.dom.get('_pic_func_link'), 'keydown', function(e){
 					if(e.keyCode == 13 && _this.curImg){
-						_this.editor.editorcommands.execCommand('adjustLink',ve.dom.get('_pic_func_link').value);
+						_this.editor.execCommand('adjustLink',ve.dom.get('_pic_func_link').value);
 						_this.hideTools();
 					}
 				});
 
 				ve.dom.event.add(ve.dom.get('_pic_func_setLink_btn'), 'click', function(){
 					if(_this.curImg){
-						_this.editor.editorcommands.execCommand('adjustLink', ve.dom.get('_pic_func_link').value);
+						_this.editor.execCommand('adjustLink', ve.dom.get('_pic_func_link').value);
 					}
 					_this.hideTools();
 				});
 				ve.dom.event.add(ve.dom.get('_pic_func_removeLink_btn'), 'click', function(){
 					if(_this.curImg){
-						_this.editor.editorcommands.execCommand('adjustLink', '');
+						_this.editor.execCommand('adjustLink', '');
 					}
 					_this.hideTools();
 				});
@@ -9991,7 +10591,7 @@
 		 **/
 		setImgAlign: function(img, align){
 			ve.dom.setStyles(img, {'float':'none'});
-			this.editor.editorcommands.execCommand('justify'+align);
+			this.editor.execCommand('justify'+align);
 			this.updateToolsPosition(img);
 			ve.dom.event.preventDefault();
 		},
@@ -10037,42 +10637,6 @@
 	//这里为bbs.qun.qq.com这种qq.com下的站点服务，如果遇到其他站点接入，这里条件需要扩展
 	var QZONE_VER = location.host.indexOf('bbs.qun.qq.com') < 0;
 
-	/**
-	 * 加载图片队列
-	 * @param {Array} imgSrcList
-	 * @param {Function} callback
-	 **/
-	var loadImageQueue = function(imgSrcList, callback){
-		var len = imgSrcList.length;
-		var count = 0;
-		var infoList = {};
-
-		var allDone = function(){
-			var result = [];
-			ve.lang.each(imgSrcList, function(item, index){
-				result.push(infoList[item]);
-			});
-			callback(result);
-		};
-
-		ve.lang.each(imgSrcList, function(src){
-			infoList[src] = {width:null, height:null, src:src};
-			var img = new Image();
-			img.onload = function(){
-				infoList[this.src] = {width: this.width, height: this.height, src:this.src};
-				if(++count == len){
-					allDone();
-				}
-			};
-			img.onerror = function(){
-				if(++count == len){
-					allDone();
-				}
-			};
-			img.src = src;
-		});
-	};
-
 	//新相册放量
 	ve.lang.Class('VEditor.plugin.QzoneImage:VEditor.plugin.QzoneMedia', {
 		editor: null,
@@ -10088,7 +10652,8 @@
 			},
 			cssClassName: '',
 			disableScale: false,
-			IMG_MAX_WIDTH: 870
+			IMG_MAX_WIDTH: 870,
+			IMG_MAX_HEIGHT: null
 		},
 
 		init: function (editor, url) {
@@ -10096,8 +10661,8 @@
 			this.editor = editor;
 			this.config.blogType = 7; //为私密日志传图做准备
 
-			this.config.baseURL = QZONE_VER ? 'http://'+this.IMGCACHE_DOMAIN+'/qzone/app/photo/insert_photo.html#referer=blog_editor' :
-				'http://'+this.IMGCACHE_DOMAIN+ "/qzone/client/photo/pages/qzone_v4/insert_photo.html#referer=blog_editor&uin=" + this.loginUin;
+			this.config.baseURL = QZONE_VER ? 'http://'+this.IMGCACHE_DOMAIN+'/qzone/app/photo/insert_photo.html#appid=2&refer=blog' :
+				'http://'+this.IMGCACHE_DOMAIN+ "/qzone/client/photo/pages/qzone_v4/insert_photo.html#appid=2&refer=blog&uin=" + this.loginUin;
 			this.topWin.insertPhotoContent = null;
 
 			var goLastAid = 0;
@@ -10107,7 +10672,7 @@
 				cmd: function(){
 					_this.topWin.insertPhotoContent = null;
 					//业务参数
-					_this.config.panel.url = ([_this.config.baseURL,'&blog_type=',_this.blogType,'&uin=', _this.loginUin,'&goLastAid='+goLastAid]).join('');
+					_this.config.panel.url = ([_this.config.baseURL,'&uploadHD=1','&blog_type=',_this.blogType,'&uin=', _this.loginUin,'&goLastAid='+goLastAid]).join('');
 					goLastAid = 1;
 					_this.showPanel();
 				}
@@ -10128,29 +10693,20 @@
 				this.lastBlogAlbumId = data.lastAlbumId;
 				var len = data.photos.length;
 				var queue = [];
-
 				this.editor.showStatusbar('正在插入图片...', 20)
 				ve.lang.each(data.photos, function(photo){
 					queue.push(photo.url);
 				});
 
-				loadImageQueue(queue, function(itemList){
+				ve.dom.loadImageQueue(queue, function(itemList){
 					var htmls = [len > 1 ? '<br/>' : ''];
 					ve.lang.each(itemList, function(item, index){
 						if(item.src){
-							var style = '';
 							var photoData = data.photos[index];
-							if(item.width && item.height){
-								var w = item.width, h = item.height;
-								if(w > _this.config.IMG_MAX_WIDTH){
-									h = parseInt((_this.config.IMG_MAX_WIDTH / w) * h,10);
-									w = _this.config.IMG_MAX_WIDTH;
-								}
-								style += w ? 'width:'+w+'px;' : '';
-								style += h ? 'height:'+h+'px' : '';
-							}
+							var reg = ve.lang.resize(item.width, item.height, _this.config.IMG_MAX_WIDTH, _this.config.IMG_MAX_HEIGHT);
+							var style = 'width:'+reg[0]+'px; height:'+reg[1]+'px';
+							htmls.push('<img src="',ve.string.trim(item.src),'" alt="图片" style="'+style+'"/>');
 
-							htmls.push('<img src="',ve.string.trim(item.src),'" alt="图片"'+ (style ? ' style="'+style+'"' : '') + '/>');
 							if(data.needPhotoName && photoData.name){
 								htmls.push('<br/>照片名称：'+photoData.name);
 							}
@@ -10300,15 +10856,15 @@
 				_lastUserList = userList;
 			});
 
+			//首次输入@字符
+			var _firstInsAt;
+
 			//在好友列表里面进行键盘快捷操作，如方向键和回车键
 			//这里把控制事件放入keyDown, 提前到其他类似updaterange, history前面
-			var _insertMentionChar;
 			this.editor.onKeyDown.addFirst(function(e){
-				//输入@的时候
 				if(e.keyCode == 50 && e.shiftKey){
-					_insertMentionChar = true;
-				} else {
-					_insertMentionChar = false;
+					_firstInsAt = true;
+					return;
 				}
 
 				//up, down, tab
@@ -10341,7 +10897,8 @@
 
 			//KEY KEYS.UP
 			this.editor.onKeyUp.addLast(function(e){
-				if(_insertMentionChar || (e.keyCode == 50 && e.shiftKey)){
+				//输入@的时候获取@的位置信息
+				if(_firstInsAt){
 					var rng = _this.editor.getVERange();
 					var bookmark = rng.createBookmark();
 					var st = bookmark['start'];
@@ -10349,13 +10906,17 @@
 					var r = ve.dom.getRegion(st);
 					_this.lastRegion = {left:r.left, top:r.top};
 					rng.moveToBookmark(bookmark);
+					_firstInsAt = false;
 					return;
 				}
-				_insertMentionChar = false;
 
 				if(!e.ctrlKey && !e.shiftKey &&
-					e.keyCode != KEYS.UP && e.keyCode != KEYS.DOWN &&
-					e.keyCode != KEYS.RETURN && e.keyCode != KEYS.TAB && e.keyCode != KEYS.ESC){
+					e.keyCode != 17 &&
+					e.keyCode != KEYS.UP &&
+					e.keyCode != KEYS.DOWN &&
+					e.keyCode != KEYS.RETURN &&
+					e.keyCode != KEYS.TAB &&
+					e.keyCode != KEYS.ESC){
 					_this.detectStr();
 				} else if(e.keyCode == KEYS.ESC){
 					_this.hideTip();
@@ -10369,7 +10930,7 @@
 
 			//鼠标点击，关闭tip
 			this.editor.onMouseDown.add(function(){
-				_insertMentionChar = false;
+				_firstInsAt = false;
 				_this.lastRegion = null;
 				_this.hideTip();
 			});
@@ -11058,7 +11619,7 @@
 				cmd: function(){
 					if(!colorPicker){
 						loadColorPicker(pickerUrl, _this.btn.getDom(), _this.editor, function(color){
-								_this.editor.editorcommands.execCommand('glowfont', color);
+								_this.editor.execCommand('glowfont', color);
 							}, function(picker){
 								colorPicker = picker;
 								colorPicker.show();

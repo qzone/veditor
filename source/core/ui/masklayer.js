@@ -8,7 +8,7 @@
 		top: 0,
 		left:0,
 		width: '100%',
-		backgroundColor: 'black',
+		backgroundColor: '#aaa',
 		zIndex: 8999,
 		opacity: 0.5
 	};
@@ -27,7 +27,7 @@
 				MASKER_DOM = document.createElement('div');
 				document.body.appendChild(MASKER_DOM);
 				styleConfig = ve.lang.extend(true, DEF_STYLE_CONFIG, styleConfig || {});
-				ve.dom.setStyle(MASKER_DOM, styleConfig);
+				ve.dom.setStyles(MASKER_DOM, styleConfig);
 			}
 
 			var winRegion = ve.dom.getWindowRegion();

@@ -665,21 +665,6 @@ CC:
   TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/color/plugin.js 
 
 MD:
- E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/doc/ 
-
-CC: 
-  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\doc/CommonFileUploader.swf 
-  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/doc/CommonFileUploader.swf 
-
-CC: 
-  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\doc/plugin.js 
-  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/doc/plugin.js 
-
-CC: 
-  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\doc/upload.html 
-  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/doc/upload.html 
-
-MD:
  E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/emotion/ 
 
 CC: 
@@ -713,6 +698,33 @@ MD:
 CC: 
   SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\htmleditor/plugin.js 
   TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/htmleditor/plugin.js 
+
+MD:
+ E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/image/ 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\image/bg.png 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/image/bg.png 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\image/formposter.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/image/formposter.js 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\image/image.html 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/image/image.html 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\image/image.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/image/image.js 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\image/loading.gif 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/image/loading.gif 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\image/plugin.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/image/plugin.js 
 
 MD:
  E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/imagetools/ 
@@ -762,6 +774,29 @@ MD:
 CC: 
   SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzoneblogtoolbarpin/plugin.js 
   TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzoneblogtoolbarpin/plugin.js 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzoneblogtoolbarpin/scroll.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzoneblogtoolbarpin/scroll.js 
+
+MD:
+ E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonedoc/ 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzonedoc/formposter.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonedoc/formposter.js 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzonedoc/plugin.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonedoc/plugin.js 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzonedoc/upload.html 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonedoc/upload.html 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzonedoc/upload.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonedoc/upload.js 
 
 MD:
  E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzoneflash/ 
@@ -825,6 +860,10 @@ MD:
 CC: 
   SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzonesidealbum/plugin.js 
   TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonesidealbum/plugin.js 
+
+CC: 
+  SRC:E:\htdocs\qzone_proj\trunk\veditor\build\..\source\plugins\qzonesidealbum/side.js 
+  TAG:E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonesidealbum/side.js 
 
 MD:
  E:/htdocs/qzone_proj/trunk/veditor/build/../release/plugins/qzonevideo/ 

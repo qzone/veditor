@@ -60,15 +60,18 @@
 				'../source/plugins/link/plugin.js',					//链接
 				'../source/plugins/color/plugin.js',				//前景色
 				'../source/plugins/xpaste/plugin.js',				//粘贴
+				'../source/plugins/code/plugin.js',					//代码编辑
+				'../source/plugins/autocomposing/plugin.js',		//自动排版
 				'../source/plugins/removeformat/plugin.js',			//移除格式
 
+				'../source/plugins/emotion/plugin.js',				//表情
 				'../source/plugins/sosoemotion/plugin.js',			//soso表情
 				'../source/plugins/qzoneblogtoolbarpin/plugin.js',	//工具条滚动
 				'../source/plugins/qzonemention/plugin.js',			//@功能
 				'../source/plugins/qzonefullscreen/plugin.js',		//全屏
 
 				'../source/plugins/imagetools/plugin.js',			//图文混排工具条
-				'../source/plugins/qzonealbum/plugin.js',			//像集
+				'../source/plugins/qzonedoc/plugin.js',				//word上传
 				'../source/plugins/qzoneflash/plugin.js',			//flash
 				'../source/plugins/qzoneimage/plugin.js',			//图片
 				'../source/plugins/qzonemusic/plugin.js',			//音乐

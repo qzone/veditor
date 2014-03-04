@@ -112,6 +112,11 @@
 			return BASE_PATH + (u||'');
 		},
 
+		ERROR: {
+			CRASH: 999,
+			NET_RESOURCE: 999
+		},
+
 		plugin: {},
 		version: '2.03',
 		blankChar: '\uFEFF',
@@ -119,7 +124,6 @@
 		caretChar: '\u2009',
 		ui: {},
 		dom: {},
-
 
 		/**
 		 * 添加编辑器实例
@@ -144,7 +148,7 @@
 		isHelperNode: function(node){
 			return node && node.nodeType == 3 &&
 				(new RegExp('^'+this.blankChar+'$').test(node.nodeValue) ||
-					new RegExp('^'+this.caretChar+'$').test(node.nodeValue));
+				new RegExp('^'+this.caretChar+'$').test(node.nodeValue));
 		},
 
 		/**
@@ -156,9 +160,17 @@
 			var editor = new VEditor.Editor(conf);
 			this.add(editor);
 
+			//这里通过timeout来强制某些浏览器初始化核心的时候采用了同步方式初始化，
+			//导致外部逻辑代码（形如：var ed = VE.create(); ed.onInitComplete.add()）事件绑定失效
+			//正规做法应该是 var ed = new VE(); ed.init(); 当前create方法两步都做了，因此这里需要强制异步
 			setTimeout(function(){
-			editor.init();
-			}, 100);
+				try {
+					console.log('VE init start');
+					editor.init();
+				} catch(ex){
+					editor.exception(ex.toString(), (ex['code'] || VEditor.ERROR.CRASH), ex['data'], true);
+				}
+			},0);
 
 			return editor;
 		}
@@ -167,4 +179,11 @@
 	//占用命名空间
 	//@deprecate 这里由于旧版的使用的命名空间为veEditor，所以暂时适配
 	window.veEditor = window.VEditor = VEditor;
+
+	//统计，不需要的开发同学可以注释掉
+	setTimeout(function(){
+		var img = new Image();
+		var h = location.hostname.replace(/\./g, '_');
+		img.src = 'http://pinghot.qq.com/pingd?dm=blog.qzone.qq.com.hot&url=/BlogEditer&tt=-&hottag=BlogEditer.veditorpv.'+h+'&hotx=9999&hoty=9999&adtag=-&rand='+Math.random()
+	}, 5000);
 }) (window, document);

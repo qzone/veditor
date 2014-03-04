@@ -2,6 +2,9 @@
  * 超链接
  */
 (function(ve) {
+	var isMail = function(str){
+		return /^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/.test(str);
+	};
 	ve.lang.Class('VEditor.plugin.link', {
 		editor: null,
 		pop: null,
@@ -17,7 +20,7 @@
 					_this.showPanel(null, _this.btn.getDom());
 				}
 			});
-			
+
 			//添加到编辑器命令集合中
 			ve.lang.each(['removeLink', 'addLink', 'adjustLink'], function(method){
 				_this.editor.addCommand(method, function(){
@@ -56,9 +59,11 @@
 				} else {
 					_this.node = aLink;
 					var href = aLink.href;
+					var _fixTop = 3;	//修正行高
 					var region = ve.dom.getRegion(aLink);
 					var iframeRegion = ve.dom.getRegion(_this.editor.iframeContainer);
-					_this.showPanel(href, null, {top:region.top+iframeRegion.top+region.height, left:region.left+iframeRegion.left});
+					var scrollTop = parseInt(_this.editor.getBody().scrollTop, 10) || 0;
+					_this.showPanel(href, null, {top:region.top+iframeRegion.top+region.height-scrollTop+_fixTop, left:region.left+iframeRegion.left});
 					ve.dom.event.preventDefault(e);
 					return false;
 				}
@@ -232,11 +237,17 @@
 		 * 添加、删除链接
 		 **/
 		adjustLink: function(link){
-			if(!link || link.toLowerCase() == 'http://'){
+			if(!link || link.toLowerCase() == 'http://' || link.toLowerCase() == 'mailto:'){
 				this.removeLink();
 			} else {
 				text = link;
-				link = link.indexOf('://') > 0 ? link : 'http://'+link;
+				if(link.indexOf('://') > 0 || link.toLowerCase().indexOf('mailto:') == 0){
+					//正常行为
+				} else if(isMail(link)){
+					link = 'mailto:'+link;
+				} else {
+					link = 'http://' + link;
+				}
 				this.addLink(link, text);
 			}
 		},
@@ -251,18 +262,18 @@
 				var e = e || window.event;
 				if(e.keyCode == ve.dom.event.KEYS.RETURN){
 					ve.dom.event.preventDefault(e);
-					_this.editor.editorcommands.execCommand('adjustLink', ve.dom.get('link-val').value);
+					_this.editor.execCommand('adjustLink', ve.dom.get('link-val').value);
 					_this.closePanel();
 				}
 			});
 
 			ve.dom.event.add(ve.dom.get('link-submit-btn'), 'click', function(e){
-				_this.editor.editorcommands.execCommand('adjustLink', ve.dom.get('link-val').value);
+				_this.editor.execCommand('adjustLink', ve.dom.get('link-val').value);
 				_this.closePanel();
 			});
 
 			ve.dom.event.add(ve.dom.get('link-remove-btn'), 'click', function(e){
-				_this.editor.editorcommands.execCommand('adjustLink');
+				_this.editor.execCommand('adjustLink');
 				_this.closePanel();
 			});
 		}

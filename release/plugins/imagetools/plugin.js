@@ -41,11 +41,6 @@
 				_this.hideTools();
 			});
 
-			// 删除图片后的处理
-			this.editor.onNodeRemoved.add(function() {
-				_this.hideTools();
-			});
-
 			//去除多余的自定义属性
 			//这块数据前期还是需要保留的。
 			/**
@@ -170,20 +165,20 @@
 
 				ve.dom.event.add(ve.dom.get('_pic_func_link'), 'keydown', function(e){
 					if(e.keyCode == 13 && _this.curImg){
-						_this.editor.editorcommands.execCommand('adjustLink',ve.dom.get('_pic_func_link').value);
+						_this.editor.execCommand('adjustLink',ve.dom.get('_pic_func_link').value);
 						_this.hideTools();
 					}
 				});
 
 				ve.dom.event.add(ve.dom.get('_pic_func_setLink_btn'), 'click', function(){
 					if(_this.curImg){
-						_this.editor.editorcommands.execCommand('adjustLink', ve.dom.get('_pic_func_link').value);
+						_this.editor.execCommand('adjustLink', ve.dom.get('_pic_func_link').value);
 					}
 					_this.hideTools();
 				});
 				ve.dom.event.add(ve.dom.get('_pic_func_removeLink_btn'), 'click', function(){
 					if(_this.curImg){
-						_this.editor.editorcommands.execCommand('adjustLink', '');
+						_this.editor.execCommand('adjustLink', '');
 					}
 					_this.hideTools();
 				});
@@ -270,7 +265,7 @@
 		 **/
 		setImgAlign: function(img, align){
 			ve.dom.setStyles(img, {'float':'none'});
-			this.editor.editorcommands.execCommand('justify'+align);
+			this.editor.execCommand('justify'+align);
 			this.updateToolsPosition(img);
 			ve.dom.event.preventDefault();
 		},

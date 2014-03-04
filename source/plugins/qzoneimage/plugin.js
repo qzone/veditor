@@ -7,42 +7,6 @@
 	//这里为bbs.qun.qq.com这种qq.com下的站点服务，如果遇到其他站点接入，这里条件需要扩展
 	var QZONE_VER = location.host.indexOf('bbs.qun.qq.com') < 0;
 
-	/**
-	 * 加载图片队列
-	 * @param {Array} imgSrcList
-	 * @param {Function} callback
-	 **/
-	var loadImageQueue = function(imgSrcList, callback){
-		var len = imgSrcList.length;
-		var count = 0;
-		var infoList = {};
-
-		var allDone = function(){
-			var result = [];
-			ve.lang.each(imgSrcList, function(item, index){
-				result.push(infoList[item]);
-			});
-			callback(result);
-		};
-
-		ve.lang.each(imgSrcList, function(src){
-			infoList[src] = {width:null, height:null, src:src};
-			var img = new Image();
-			img.onload = function(){
-				infoList[this.src] = {width: this.width, height: this.height, src:this.src};
-				if(++count == len){
-					allDone();
-				}
-			};
-			img.onerror = function(){
-				if(++count == len){
-					allDone();
-				}
-			};
-			img.src = src;
-		});
-	};
-
 	//新相册放量
 	ve.lang.Class('VEditor.plugin.QzoneImage:VEditor.plugin.QzoneMedia', {
 		editor: null,
@@ -58,7 +22,8 @@
 			},
 			cssClassName: '',
 			disableScale: false,
-			IMG_MAX_WIDTH: 870
+			IMG_MAX_WIDTH: 870,
+			IMG_MAX_HEIGHT: null
 		},
 
 		init: function (editor, url) {
@@ -66,8 +31,8 @@
 			this.editor = editor;
 			this.config.blogType = 7; //为私密日志传图做准备
 
-			this.config.baseURL = QZONE_VER ? 'http://'+this.IMGCACHE_DOMAIN+'/qzone/app/photo/insert_photo.html#referer=blog_editor' :
-				'http://'+this.IMGCACHE_DOMAIN+ "/qzone/client/photo/pages/qzone_v4/insert_photo.html#referer=blog_editor&uin=" + this.loginUin;
+			this.config.baseURL = QZONE_VER ? 'http://'+this.IMGCACHE_DOMAIN+'/qzone/app/photo/insert_photo.html#appid=2&refer=blog' :
+				'http://'+this.IMGCACHE_DOMAIN+ "/qzone/client/photo/pages/qzone_v4/insert_photo.html#appid=2&refer=blog&uin=" + this.loginUin;
 			this.topWin.insertPhotoContent = null;
 
 			var goLastAid = 0;
@@ -77,7 +42,7 @@
 				cmd: function(){
 					_this.topWin.insertPhotoContent = null;
 					//业务参数
-					_this.config.panel.url = ([_this.config.baseURL,'&blog_type=',_this.blogType,'&uin=', _this.loginUin,'&goLastAid='+goLastAid]).join('');
+					_this.config.panel.url = ([_this.config.baseURL,'&uploadHD=1','&blog_type=',_this.blogType,'&uin=', _this.loginUin,'&goLastAid='+goLastAid]).join('');
 					goLastAid = 1;
 					_this.showPanel();
 				}
@@ -98,29 +63,20 @@
 				this.lastBlogAlbumId = data.lastAlbumId;
 				var len = data.photos.length;
 				var queue = [];
-
 				this.editor.showStatusbar('正在插入图片...', 20)
 				ve.lang.each(data.photos, function(photo){
 					queue.push(photo.url);
 				});
 
-				loadImageQueue(queue, function(itemList){
+				ve.dom.loadImageQueue(queue, function(itemList){
 					var htmls = [len > 1 ? '<br/>' : ''];
 					ve.lang.each(itemList, function(item, index){
 						if(item.src){
-							var style = '';
 							var photoData = data.photos[index];
-							if(item.width && item.height){
-								var w = item.width, h = item.height;
-								if(w > _this.config.IMG_MAX_WIDTH){
-									h = parseInt((_this.config.IMG_MAX_WIDTH / w) * h,10);
-									w = _this.config.IMG_MAX_WIDTH;
-								}
-								style += w ? 'width:'+w+'px;' : '';
-								style += h ? 'height:'+h+'px' : '';
-							}
+							var reg = ve.lang.resize(item.width, item.height, _this.config.IMG_MAX_WIDTH, _this.config.IMG_MAX_HEIGHT);
+							var style = 'width:'+reg[0]+'px; height:'+reg[1]+'px';
+							htmls.push('<img src="',ve.string.trim(item.src),'" alt="图片" style="'+style+'"/>');
 
-							htmls.push('<img src="',ve.string.trim(item.src),'" alt="图片"'+ (style ? ' style="'+style+'"' : '') + '/>');
 							if(data.needPhotoName && photoData.name){
 								htmls.push('<br/>照片名称：'+photoData.name);
 							}

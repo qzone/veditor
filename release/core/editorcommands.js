@@ -13,7 +13,7 @@
 			this.commands = {};
 
 			//扩展editorcommands方法到editor
-			ve.lang.each(['addCommand'], function(method){
+			ve.lang.each(['addCommand','removeCommand','hasCommand','execCommand'], function(method){
 				editor[method] = function(){
 					return _this[method].apply(_this, ve.lang.arg2Arr(arguments));
 				};

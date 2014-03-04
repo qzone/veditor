@@ -114,7 +114,7 @@
 		s.setAttribute('charset', option.charset);
 
 		ve.dom.event.add(s, ve.ua.ie && ve.ua.ie < 10 ? 'readystatechange': 'load', function(){
-			if(ve.ua.ie && s.readyState != 'loaded' && s.readyState != 'complete'){
+			if(ve.ua.ie && s.readyState != 'loaded' && s.readyState != 'complete' && ve.ua.ie != 11){
 				return;
 			}
 			setTimeout(function(){
@@ -128,8 +128,8 @@
 			sucCb();
 			**/
 		});
-		s.src = option.src;
 		(doc.getElementsByTagName('head')[0] || doc.body).appendChild(s);
+		s.src = option.src;
 	};
 
 	/**
@@ -185,6 +185,13 @@
 		(doc.getElementsByTagName('head')[0] || doc.body).appendChild(css);
 	};
 
+	var getParameter = function(name, str){
+		var r = new RegExp("(\\?|#|&)" + name + "=([^&#]*)(&|#|$)");
+		var m = (str || location.href).match(r);
+		return (!m?"":m[2]);
+	};
+
+	ve.net.getParameter = getParameter;
 	ve.net.loadScript = loadScript;
 	ve.net.loadCss = loadCss;
 })(VEditor);

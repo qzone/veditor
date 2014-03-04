@@ -56,7 +56,7 @@
 				if(typeof(t.conf.cmd) == 'function'){
 					t.conf.cmd.apply(_this);
 				} else if(t.conf.cmd){
-					t.conf.editor.editorcommands.execCommand(t.conf.cmd);
+					t.conf.editor.execCommand(t.conf.cmd);
 				}
 				_this.onClick.fire(_this);
 			});

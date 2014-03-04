@@ -28,17 +28,19 @@
 
 		/**
 		 * 渲染布局
+		 * 包括：处理工具条、处理状态条容器、新建tm
 		**/
 		renderBaseLayout: function(){
 			var editor = this.editor;
 			editor.toolbarManager = new ve.ui.ToolbarManager(editor, {name: 'default'});
 
-			editor.toolbarContainer = editor.toolbarManager.createContainer({'class':'veToolbarContainer editor_toolbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
-			editor.statusbarContainer = ve.dom.create('div', {'class': 'veStatusbarContainer editor_statusbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
+			var tc = editor.toolbarManager.createContainer({'class':'veToolbarContainer editor_toolbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
+			editor.toolbarContainer.appendChild(tc);
+			editor.toolbarContainer = tc;
 
-			ve.lang.each(['toolbarContainer','statusbarContainer', 'iframeContainer'], function(n) {
-				editor.conf[n].appendChild(editor[n]);
-			});
+			var sc = ve.dom.create('div', {'class': 'veStatusbarContainer editor_statusbar_container_' + editor.id, 'style': {'overflow':'hidden'}});
+			editor.statusbarContainer.appendChild(sc);
+			editor.statusbarContainer = sc;
 		},
 
 		/**
@@ -63,15 +65,21 @@
 				}
 			}
 
-			ve.lang.each(buttonConfig, function(gp){
-				var tb = tm.createToolbar(gp.group, {'class':gp.className});
+			ve.lang.each(buttonConfig, function(gp, idx){
+				var lastTbClass = (idx+1 == buttonConfig.length) ? ' veToolbar_last' : '';
+				var tb = tm.createToolbar(gp.group, {'class': gp.className+lastTbClass});
 				if(gp.buttons){
 					var buttons = gp.buttons.replace(/\s/g,'').split(',');
-					ve.lang.each(buttons, function(btnName){
-						tb.add(tm.getUIControlFromCollection(btnName));
+					ve.lang.each(buttons, function(btnName, idx2){
+						var btn = tm.getUIControlFromCollection(btnName);
+						if(btn){
+							idx2 == (buttons.length - 1) && (btn.normalClass += ' veButton_last');
+							tb.add(btn);
+						}
 					});
 				}
 			});
+
 			//渲染工具条
 			tm.render();
 		}

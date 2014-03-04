@@ -45,7 +45,7 @@
 				cmd: function(){
 					if(!colorPicker){
 						loadColorPicker(pickerUrl, _this.btn.getDom(), _this.editor, function(color){
-								_this.editor.editorcommands.execCommand('glowfont', color);
+								_this.editor.execCommand('glowfont', color);
 							}, function(picker){
 								colorPicker = picker;
 								colorPicker.show();

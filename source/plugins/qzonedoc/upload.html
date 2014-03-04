@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>日志上传文件生成日志</title>
+        <link rel="stylesheet" rev="stylesheet" href="http://qzonestyle.gtimg.cn/qzone_v6/qz_dialog.css" media="screen" type="text/css">
+        <link rel="stylesheet" rev="stylesheet" href="http://qzonestyle.gtimg.cn/qzone_v6/blog_popup.css" media="screen" type="text/css">
+        <script src="/qzone/v8/applib/embeded.js"></script>
+		<script type="text/javascript">
+			document.write(([
+				'<script charset="utf-8" type="text/javascript" src="/ac/qzone/qzfl/qzfl'+parent.g_V.qz+'.js"><\/script>',
+				'<script charset="utf-8" type="text/javascript" src="/qzone/newblog/v5/script/common.js"><\/script>'
+			]).join(''));
+		</script>
+		<style>
+			body {height:242px; overflow:hidden;}
+			.changing {background:url(http://ctc.qzonestyle.gtimg.cn/qzonestyle/qzone_client_v5/img/loading.gif) no-repeat 0 0; padding-left:20px;}
+		</style>
+    </head>
+    <body>
+    	<form action="http://n.qzone.qq.com/cgi-bin/new/blog_upload_file" id="form" method="POST" enctype="multipart/form-data">
+			<div class="mod_word_blog">
+				<p class="hd">
+					您可以上传word文档生成一篇新日志。
+				</p>
+				<div class="bd" style="padding:20px 0 0; height:48px; overflow:hidden;">
+					<!-- 文件选择面板 -->
+					<div class="default_show" id="select_file_panel">
+						<input type="file" name="file" id="file">
+						<p class="error" id="error" style="display:none"><span class="icon ico_hint"></span><span id="msg"></span></p>
+					</div>
+
+					<!-- 上传中 -->
+					<div class="upload_wrap" id="uploading_panel" style="display:none">
+						<p class="changing" id="progress-status">文件上传中···</p>
+					</div>
+
+					<div id="upload_done" style="display:none">
+						上传完成
+					</div>
+				</div>
+				<div class="ft">
+					<ul>
+						<li>▪ 目前只支持10MB以内的word文件（doc或docx）。
+						</li>
+						<li>▪ 转换文件工作量较大，速度会比较慢，请耐心等待。
+						</li>
+						<li>▪ 文字、图片及文字格式会得到保留。
+						</li>
+						<li>▪ word文档格式复杂，可能存在不能完全还原的情况。
+						</li>
+					</ul>
+				</div>
+			</div>
+			<div class="global_tip_button">
+				<input type="button" value="关闭" class="bt_tip_normal" id="close-btn">
+				<input type="submit" value="上传文档" class="bt_tip_hit" id="upload_btn">
+			</div>
+		</form>
+		<script src="formposter.js"></script>
+		<script src="upload.js"></script>
+		<script src="/qzone/app/v8/utils/return_code_report/1.0.js"></script>
+    </body>
+</html>

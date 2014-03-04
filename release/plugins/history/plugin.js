@@ -36,7 +36,7 @@
 			var _this = this;
 
 			var _COM_SET_FLAG;
-			this.editor.onBeforeSetContent.add(function(params){
+			_this.editor.onBeforeSetContent.add(function(params){
 				_COM_SET_FLAG = params.addHistory;
 				if(params.addHistory){
 					_this.add();
@@ -52,7 +52,7 @@
 			});
 
 			//由于当前add的是在 keycount足够的时候执行，所以这里要补一下
-			this.editor.onBeforeExecCommand.add(function(cmd){
+			_this.editor.onBeforeExecCommand.add(function(cmd){
 				if(cmd == 'insertHtml' && _COM_SET_FLAG){
 					//忽略setContent(addHistory:true)情况
 					//那边的已经设置了
@@ -88,15 +88,6 @@
 				16:1, 17:1, 18:1,	//shift, ctrl, alt
 				37:1, 38:1, 39:1, 40:1	//方向键
 			};
-
-			_this.editor.onKeyDown.addLast(function(e){
-				var rng = _this.editor.getVERange();
-
-				//去除选中态、ctrl+z, ctrl+y冲突、输入法冲突
-				if(!rng.collapsed && !e.ctrlKey && !_this.editor.usingIM){
-					_this.add();
-				}
-			});
 
 			//处理添加逻辑
 			_this.editor.onKeyUp.addLast(function(e){
@@ -134,7 +125,11 @@
 
 			this.editor.addIO('addHistory', function(){
 				return _this.add();
-			})
+			});
+			this.editor.addIO('resetHistory', function(){
+				var args = ve.lang.arg2Arr(arguments);
+				return _this.reset.apply(_this, args);
+			});
 		},
 
 		/**
@@ -308,7 +303,6 @@
 		 * @param {String} html
 		 */
 		reset: function(html){
-			//console.log('调用reset', html);
 			html = html || '';
 			html = ve.string.trim(html);
 			CURRENT_KEY_COUNT = MAX_KEYDOWN_COUNT;

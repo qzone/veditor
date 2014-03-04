@@ -88,15 +88,15 @@
 				_lastUserList = userList;
 			});
 
+			//首次输入@字符
+			var _firstInsAt;
+
 			//在好友列表里面进行键盘快捷操作，如方向键和回车键
 			//这里把控制事件放入keyDown, 提前到其他类似updaterange, history前面
-			var _insertMentionChar;
 			this.editor.onKeyDown.addFirst(function(e){
-				//输入@的时候
 				if(e.keyCode == 50 && e.shiftKey){
-					_insertMentionChar = true;
-				} else {
-					_insertMentionChar = false;
+					_firstInsAt = true;
+					return;
 				}
 
 				//up, down, tab
@@ -129,7 +129,8 @@
 
 			//KEY KEYS.UP
 			this.editor.onKeyUp.addLast(function(e){
-				if(_insertMentionChar || (e.keyCode == 50 && e.shiftKey)){
+				//输入@的时候获取@的位置信息
+				if(_firstInsAt){
 					var rng = _this.editor.getVERange();
 					var bookmark = rng.createBookmark();
 					var st = bookmark['start'];
@@ -137,13 +138,17 @@
 					var r = ve.dom.getRegion(st);
 					_this.lastRegion = {left:r.left, top:r.top};
 					rng.moveToBookmark(bookmark);
+					_firstInsAt = false;
 					return;
 				}
-				_insertMentionChar = false;
 
 				if(!e.ctrlKey && !e.shiftKey &&
-					e.keyCode != KEYS.UP && e.keyCode != KEYS.DOWN &&
-					e.keyCode != KEYS.RETURN && e.keyCode != KEYS.TAB && e.keyCode != KEYS.ESC){
+					e.keyCode != 17 &&
+					e.keyCode != KEYS.UP &&
+					e.keyCode != KEYS.DOWN &&
+					e.keyCode != KEYS.RETURN &&
+					e.keyCode != KEYS.TAB &&
+					e.keyCode != KEYS.ESC){
 					_this.detectStr();
 				} else if(e.keyCode == KEYS.ESC){
 					_this.hideTip();
@@ -157,7 +162,7 @@
 
 			//鼠标点击，关闭tip
 			this.editor.onMouseDown.add(function(){
-				_insertMentionChar = false;
+				_firstInsAt = false;
 				_this.lastRegion = null;
 				_this.hideTip();
 			});

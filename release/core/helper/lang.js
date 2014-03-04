@@ -44,6 +44,39 @@
 			return 1;
 		},
 
+		/**
+		 * 等比缩放
+		 * @param  {Number} width     当前宽度
+		 * @param  {Number} height    当前高度
+		 * @param  {Number} maxWidth  最大宽度
+		 * @param  {Number} maxHeight 最大高度
+		 * @return {Array}           [宽度，高度]
+		 */
+		resize: function(width, height, maxWidth, maxHeight){
+			var w,h;
+			if(!maxWidth){
+				h = Math.min(height, maxHeight);
+				w = (h/height)*width;
+			}
+			else if(!maxHeight){
+				w = Math.min(width, maxWidth);
+				h = (w/width)*height;
+			}
+			else {
+				var r1 = height/width, r2 = maxHeight/maxWidth;
+				if(r1 > r2){
+					h = Math.min(height, maxHeight);
+					w = width*h/height;
+				} else {
+					w = Math.min(width, maxWidth);
+					h = height*w/width;
+				}
+			}
+			w = parseInt(w, 10);
+			h = parseInt(h, 10);
+			return [w,h];
+		},
+
 		arrayIndex: function(arr, item, start) {
             for(var i=start||0,len = arr.length; i<len; i++){
                if(arr[i] === item){

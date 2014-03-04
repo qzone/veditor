@@ -8,6 +8,9 @@
 		BLOG_TYPE = 7,								//传输到私密相册
 		PLUGIN_INSTALL_URL = 'http://mail.qq.com/cgi-bin/readtemplate?t=browser_addon&check=false',
 
+		IMG_MAX_WIDTH = 870,
+		IMG_MAX_HEIGHT = null,
+
 		UPLOADING_CLASS = 'image_uploading',		//上传中 img class
 		UPLOAD_REPEAT_CLASS= 'image_reupload',		//重新上传
 
@@ -64,13 +67,41 @@
 
 			//上传本地图片
 			this.editor.onAfterPaste.addLast(function(){
+				var localImgs = _this.getLocalImages();
+				if(!localImgs.length){
+					return;
+				}
+				_this.editor.tryIO('onPasteLocalImage', function(ev){
+					ev.fire(_this.editor, localImgs)
+				});
 				_this.uploadTempFile();
 			});
 
-			//io接口：判断是否正在上传图片
+			//IO接口：判断是否正在上传图片
 			this.editor.addIO('isUploadingPic', function(){
 				return _this.isUploading();
 			});
+
+			//IO接口：粘贴本地图片
+			this.editor.addIO('onPasteLocalImage', new ve.EventManager(this.editor));
+
+			//IO接口：正在上传本地图片
+			this.editor.addIO('onUploadingLocalImage', new ve.EventManager(this.editor));
+		},
+
+		/**
+		 * 获取内容中的本地图片
+		 * @return {Array} 
+		 */
+		getLocalImages: function(){
+			var imgs = this.editor.getDoc().getElementsByTagName('img');
+			var result = [];
+			ve.lang.each(imgs, function(img){
+				if(isLocalFile(img.src)){
+					result.push(img);
+				}
+			});
+			return result;
 		},
 
 		/**
@@ -79,20 +110,17 @@
 		**/
 		updateUploadHash: function(){
 			var _this = this;
-			var imgs = this.editor.getDoc().getElementsByTagName('img');
-
 			var _isDone = function(eventType){
 				return eventType && eventType != UPLOAD_QUEUE && eventType != UPLOAD_SENDING;
 			};
 
-			ve.lang.each(imgs, function(img){
-				if(isLocalFile(img.src)){
-					var item = QUEUE_UPLOAD_HASH[img.src];
-					var state = _isDone(item) ? UPLOAD_DONE : UPLOAD_QUEUE;
-					_this.updateOneImgUploadState(img, item, state);
-					if(!item){
-						QUEUE_UPLOAD_HASH[img.src] = UPLOAD_QUEUE;
-					}
+			var localImgs = this.getLocalImages();
+			ve.lang.each(localImgs, function(img){
+				var item = QUEUE_UPLOAD_HASH[img.src];
+				var state = _isDone(item) ? UPLOAD_DONE : UPLOAD_QUEUE;
+				_this.updateOneImgUploadState(img, item, state);
+				if(!item){
+					QUEUE_UPLOAD_HASH[img.src] = UPLOAD_QUEUE;
 				}
 			});
 		},
@@ -146,7 +174,7 @@
 			if(!IS_RELEASE){
 				return;
 			}
-
+			
 			var uploader = getCaptureObject('Uploader');
 			if(!uploader){
 				this.showInstallCaptureObjectGuild();
@@ -155,7 +183,7 @@
 
 			//ie报错，所以和这里需要try
 			if(verComp(uploader.Version, '1.0.1.54') < 0){
-				this.editor.showStatusbar('安装最新版截屏插件可以自动上传word里面的图片，<a href="'+PLUGIN_INSTALL_URL+'" target="_blank">请点击这里进行安装</a>');
+				this.editor.showStatusbar('安装最新版截屏插件可以自动上传word里面的图片，<a href="'+PLUGIN_INSTALL_URL+'" target="_blank" rel="install-new-screenshot">请点击这里进行安装</a>');
 				return;
 			}
 
@@ -350,8 +378,10 @@
 
 				//上传完成
 				case UPLOAD_DONE:
-					var html = '<img src="'+succSrc+'" alt="图片"/>';
-					this.editor.insertHtml({content:html});
+					QZONE.FP.showMsgbox('正在插入图片，请稍候',6, 3000);
+					this.editor.insertImage({src:succSrc}, IMG_MAX_WIDTH, IMG_MAX_HEIGHT, function(){
+						QZONE.FP.hideMsgbox();
+					});
 			}
 		},
 
@@ -420,6 +450,9 @@
 						_reset();
 						return;
 					}
+					_this.editor.tryIO('onUploadingLocalImage', function(ev){
+						ev.fire(_this.editor, fileID);
+					});
 				} else {
 					uploader.AddFormItem('picname2', 1, 0, fileID);
 				}

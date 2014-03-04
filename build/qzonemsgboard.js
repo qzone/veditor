@@ -58,7 +58,7 @@
 				'../source/plugins/color/plugin.js',				//前景色
 				'../source/plugins/xpaste/plugin.js',				//粘贴
 				'../source/plugins/removeformat/plugin.js',			//移除格式
-				'../source/plugins/sosoemotion/plugin.js',			//soso表情
+				'../source/plugins/emotion/plugin.js',				//表情
 				'../source/plugins/imagetools/plugin.js',			//图文混排工具条
 				'../source/plugins/qzoneimage/plugin.js',			//图片
 				'../source/plugins/qzonemention/plugin.js',			//@

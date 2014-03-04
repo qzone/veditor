@@ -46,7 +46,7 @@
 				cmd: function(){
 					if(!colorPicker){
 						loadColorPicker(pickerUrl, _this.btn.getDom(), _this.editor, function(color){
-							_this.editor.editorcommands.execCommand('BackColor', false, color);
+							_this.editor.execCommand('BackColor', false, color);
 						}, function(picker){
 							colorPicker = picker;
 							colorPicker.show();

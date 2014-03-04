@@ -6,6 +6,7 @@
 .veToolbarContainer .veButton_veHtml,
 .veToolbarContainer .veButton_veCode,
 .veToolbarContainer .veButton_veRemoveFormat,
+.veToolbarContainer .veButton_veScreen,
 .veToolbarContainer .veButton_veInsertFlash {display: none}
 
 .veToolbarAdvMode .veButton_veRedo,
@@ -16,4 +17,6 @@
 .veToolbarAdvMode .veButton_veHtml,
 .veToolbarAdvMode .veButton_veCode,
 .veToolbarAdvMode .veButton_veRemoveFormat,
+.veToolbarAdvMode .veButton_veUploadWord,
+.veToolbarAdvMode .veButton_veScreen,
 .veToolbarAdvMode .veButton_veInsertFlash {display: block}

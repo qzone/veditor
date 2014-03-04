@@ -4,6 +4,23 @@
  * @build 20110321
  */
 (function(ve){
+	function getPos(obj) {
+	    var obj1 = obj2 = obj;
+	    var l =obj.offsetLeft; var t = obj.offsetTop;
+	    while (obj1=obj1.offsetParent)
+	    	l += obj1.offsetLeft;
+	    while (obj2=obj2.offsetParent)
+	    	t += obj2.offsetTop;
+
+	    var rg = QZFL.dom.getPosition(obj);
+	    return {
+	    	top: t,
+	    	left: l,
+	    	width: rg.width,
+	    	height: rg.height
+	    };
+	}
+
 	/**
 	 * 表情库选择器
 		*
@@ -17,9 +34,9 @@
 		 * @type String
 		 */
 		_themePath : "http://imgcache.qq.com/qzone/em/theme",
-		
+
 		_emotionList : {},
-		
+
 		/**
 		 * 绑定表情按钮
 			*
@@ -39,7 +56,7 @@
 			theme = theme || "default";
 			return new QzoneEmotionPanel(element, theme, this._themePath, editor);
 		},
-		
+
 		/**
 		 * 设置表情风格的主要路径 皮肤的主路径只要设置一次即可,默认是空值 通常QZFL的皮肤都是放在
 		 * http://imgcache.qq.com/qzone/em/theme 目录下.
@@ -49,7 +66,7 @@
 		setThemeMainPath : function(path) {
 			this._themePath = path;
 		},
-		
+
 		/**
 		 * 添加表情
 			*
@@ -59,7 +76,7 @@
 		addEmotionList : function(emotionName, emotionPackage) {
 			this._emotionList[emotionName] = emotionPackage;
 		},
-		
+
 		/**
 		 * 获取表情包
 			*
@@ -69,7 +86,7 @@
 			return this._emotionList[emotionName];
 		}
 	};
-	
+
 	/**
 	 * 表情面板对象
 		*
@@ -81,27 +98,27 @@
 		 * 编辑器对象
 		 */
 		this.editor = editor;
-		
+
 		/**
 		 * 触发表情选择器的按钮对象
 		 */
 		this.element = element;
-		
+
 		/**
 		 * 表情包名称
 		 */
 		this.theme = theme;
-		
+
 		/**
 		 * 表情面板
 		 */
 		this.panel = null;
-		
+
 		/**
 		 * 表情包
 		 */
 		this.package = null;
-		
+
 		/**
 		 * 表情库路径
 			*
@@ -109,31 +126,31 @@
 		 * @private
 		 */
 		this._jsPath = themePath + "/" + this.theme + ".js";
-		
+
 		/**
 		 * 表情样式路径
 			*
 		 * @private
 		 */
 		this._cssPath = themePath + "/" + this.theme + ".css";
-		
+
 		/**
 		 * @private
 		 */
 		this._emPreview = null;
-		
+
 		/**
 		 * @private
 		 */
 		this._init();
-		
+
 		/**
 		 * 选择表情
 			*
 		 * @event
 		 */
 		this.onSelect = function(){};
-		
+
 		/**
 		 * 当表情框显示后
 			*
@@ -142,7 +159,7 @@
 		 * @event
 		 */
 		this.onShow = function(){};
-		
+
 		/**
 		 * 是否隐藏
 			*
@@ -150,7 +167,7 @@
 		 */
 		this._isHide = true;
 	};
-	
+
 	/**
 	 * 初始化表情面板
 	 */
@@ -162,7 +179,7 @@
 		ve.dom.event.add(this.element, "click", ve.lang.bind(this, this.show));
 		ve.dom.event.add(this.panel, "click", ve.lang.bind(this, this.select));
 	};
-	
+
 	/**
 	 * 加载表情
 	 */
@@ -173,13 +190,8 @@
 			this.panel.innerHTML = "正在加载表情...";
 			this.panel.style.display = "";
 			this.panel.style.position = "absolute";
-			
-			var targetPos = ve.dom.getPosition(this.element);
-			this.panel.style.top = (targetPos.top + targetPos.height) + 'px';
-			this.panel.style.left = targetPos.left + 'px';
-			
+
 			var _this = this;
-			
 			ve.net.loadScript(this._jsPath, function(){
 				_this.package = QzoneEmotion.getEmotionPackage(_this.theme);
 				_this._show();
@@ -187,7 +199,7 @@
 			ve.net.loadCss(this._cssPath);
 		}
 	};
-	
+
 	/**
 	 * 显示表情
 		*
@@ -196,62 +208,61 @@
 		this._loadTheme();
 		ve.dom.event.preventDefault(e);
 	};
-	
+
 	QzoneEmotionPanel.prototype._show = function() {
 		// 坐标修正
 		this._build();
-		
-		// 坐标修正
-		var targetPos = ve.dom.getPosition(this.element);
-		var _dialogWidth = ve.dom.getPosition(this.panel).width;
-		
-		var editorWidth = ve.dom.getSize(this.editor.iframeElement)[0];
-		var editorLeft = ve.dom.getXY(this.editor.iframeElement)[0];
-		
-		//放不下
-		if((editorWidth - (targetPos.left - editorLeft)) < _dialogWidth) {
-			ve.dom.setStyles(this.panel, {
-				left: editorLeft + editorWidth - _dialogWidth,
-				top:  targetPos.top + targetPos.height
-			});
-			}else{
-			ve.dom.setStyles(this.panel, {
-				left: targetPos.left,
-				top: targetPos.height
-			});
+
+		var targetPos = getPos(this.element);
+		var panelSize = ve.dom.getSize(this.panel);
+
+		var left = targetPos.left,
+			top = targetPos.top + targetPos.height;
+
+		//防止iframe覆盖
+		if(window.frameElement){
+			var frameSize = ve.dom.getSize(frameElement);
+			if(targetPos.left + panelSize[0] > frameSize[0]){
+				left = frameSize[0] - panelSize[0];
+			}
+			if(targetPos.top + panelSize[1] > frameSize[1]){
+				top = frameSize[1] - panelSize[1];
+			}
 		}
-		
+		this.panel.style.top = top + 'px';
+		this.panel.style.left = left + 'px';
+
 		if (!this._bindD) {
 			this._bindD = ve.lang.bind(this, this.hide);
 			this._bindM = ve.lang.bind(this, this._mousemove);
-			
+
 			ve.dom.event.add(document, "mousedown", this._bindD);
 			ve.dom.event.add(document, "mousemove", this._bindM);
 		}
-		
+
 		this._isHide = false
 		this.onShow(this.panel, this.element);
 	};
-	
+
 	/**
 	 * 建立表情面板
 	 */
 	QzoneEmotionPanel.prototype._build = function() {
-		var html = ['<div id="emPreview_' + this.theme + '" class="qzfl_emotion_preview_' + this.theme + '" style="display:none"><img src=""/><span></span></div>', '<ul style="width:440px;" class="qzfl_emotion_' + this.theme + '">'];
+		var html = ['<div id="emPreview_' + this.theme + '" class="qzfl_emotion_preview_' + this.theme + '" style="display:none"><img src=""/><span></span></div>', '<ul style="width:470px;" class="qzfl_emotion_' + this.theme + '">'];
 		for (var i = 0; i < this.package.length; i++) {
 			html.push('<li><a href="javascript:;" emotionid="' + i + '" onclick="return false;"><div emotionid="' + i + '" class="icon emotion_' + this.theme + '_' + i + '"></div></a></li>')
 		}
 		html.push('</ul>');
-		
+
 		this.panel.innerHTML = html.join("");
 		this.panel.style.display = "";
 		this._lastEmotion = null;
 		this._emPreview = ve.dom.get("emPreview_" + this.theme);
 		this._emPreImg = this._emPreview.getElementsByTagName("img")[0];
 		this._emPreText = this._emPreview.getElementsByTagName("span")[0];
-		this._panelPosition = ve.dom.getPosition(this.panel);
+		this._panelPosition = getPos(this.panel);
 	};
-	
+
 	/**
 	 * 隐藏表情框
 	 */
@@ -259,32 +270,32 @@
 		var target = ve.dom.event.getTarget(e);
 		var _eID = target.getAttribute("emotionid");
 		if (_eID) {
-			
+
 			this.onSelect({
 				id : _eID,
 				fileName : this.package.filename[_eID],
 				package : this.package
 			});
-			
+
 			this._hide();
 		}
-		
+
 		//取消浏览器的默认事件
 		ve.dom.event.preventDefault(e);
 	};
-	
+
 	/**
 	 * 鼠标移动
 	 */
 	QzoneEmotionPanel.prototype._mousemove = function(e) {
 		var target = ve.dom.event.getTarget(e);
 		var _eID = target.getAttribute("emotionid");
-		
+
 		if (ve.dom.isAncestor(this.panel, target)) {
 			if (_eID && this._lastEmotion != _eID) {
 				this._emPreview.style.display = "";
 				this._lastEmotion = _eID;
-				
+
 				// 修正预览框位置
 				if (ve.dom.event.mouseX(e) < this._panelPosition.left + this._panelPosition.width / 2) {
 					this._emPreview.style.left = "";
@@ -293,7 +304,7 @@
 					this._emPreview.style.left = "3px";
 					this._emPreview.style.right = "";
 				}
-				
+
 				this._emPreImg.src = this.package.filename[_eID];
 				this._emPreText.innerHTML = this.package.titles[_eID] || "";
 			}
@@ -302,7 +313,7 @@
 			this._emPreview.style.display = "none";
 		}
 	};
-	
+
 	/**
 	 * 隐藏表情框
 	 */
@@ -310,15 +321,15 @@
 		if (this._isHide) {
 			return;
 		}
-		
+
 		var target = ve.dom.event.getTarget(e);
 		if (target == this.panel || ve.dom.isAncestor(this.panel, target)) {
-			
+
 		} else {
 			this._hide();
 		}
 	};
-	
+
 	/**
 	 * 隐藏表情框
 		*
@@ -334,7 +345,7 @@
 		delete this._bindM;
 		this._isHide = true;
 	};
-	
+
 	//非QZONE环境适配
 	window.QZONE = window.QZONE || {widget:{}};
 	if(!QZONE.widget){

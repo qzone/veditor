@@ -17,7 +17,8 @@
 		bEmotionLoaded: false,
 		btnElement: null,
 		editor: null,
-		jsPath: 'http://image.soso.com/js/sosoexp_platform.js',
+		//jsPath: 'http://image.soso.com/js/sosoexp_platform.js',
+		jsPath: 'http://pic.sogou.com/js/sosoexp_platform.js',
 
 		init: function (editor, url) {
 			var _this = this;

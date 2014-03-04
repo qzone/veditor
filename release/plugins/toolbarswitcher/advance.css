@@ -1,8 +1,9 @@
 /** 高级模式 **/
 .veToolbarAdvMode {height:60px;}
-.veToolbarAdvMode .veToolbar {height:auto;}
+.veToolbarAdvMode .veToolbar {height:auto; padding-right:5px;}
 .veToolbarAdvMode .veFontStyleToolbar {width:auto;}
 .veToolbarAdvMode .veExtraToolbar {width:120px}
+.veToolbarAdvMode .veAdvToolbar .veButton {margin-right:0;}
 
 .veToolbarAdvMode .veButton_veSave {width:35px; height:49px}
 .veToolbarAdvMode .veButton .veSave {width:35px; height:49px; background-position:-875px 0}
@@ -14,17 +15,23 @@
 .veToolbarAdvMode .veButton .veSubmitBlog {width:81px; height:50px;font-size: 16px; line-height: 48px; text-align: center; background-position:-86px 0}
 .veToolbarAdvMode .veButton_disabled .veSubmitBlog {background-position:-86px -55px}
 
+/** 竖线 **/
+.veToolbarAdvMode .veToolbar {border-right:1px solid #c1c1c1;}
+body .veToolbarAdvMode .veToolbar_last {margin-right:0; border-right:none;}
+
+
 .veToolbarAdvMode .veButton_veUndo {margin:0}
 .veToolbarAdvMode .veButton_veRedo {margin:27px 0 0 -27px}
 /*.veToolbarAdvMode .veButton_veRedo {margin:26px 0 0 -29px}**/
 
-.veToolbarAdvMode .veOperateToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px}
-.veToolbarAdvMode .veButton_veBold {margin:26px 0 0 -171px}
+.veToolbarAdvMode .veListFontSize {margin-right:0}
+
+.veToolbarAdvMode .veButton_veBold {margin:26px 0 0 -168px}
 .veToolbarAdvMode .veButton_veItalic {margin:26px 0 0 -144px}
-.veToolbarAdvMode .veButton_veUnderline {margin:26px 0 0 -117px}
-.veToolbarAdvMode .veButton_veForeColor {margin:26px 0 0 -84px}
+.veToolbarAdvMode .veButton_veUnderline {margin:26px 0 0 -115px}
+.veToolbarAdvMode .veButton_veForeColor {margin:26px 0 0 -82px}
 .veToolbarAdvMode .veButton_veBackColor {margin:26px 0 0 -53px}
-.veToolbarAdvMode .veButton_veItalic {margin:26px 0 0 -144px}
+.veToolbarAdvMode .veButton_veItalic {margin:26px 0 0 -141px}
 .veToolbarAdvMode .veColorToolbar {margin:26px 0 0 -171px}
 
 /** ie, ie6 hack **/
@@ -39,13 +46,14 @@ body:nth-of-type(1) .veToolbarAdvMode .veButton_veGlowFont {margin:-22px 0 0 124
 /** hack for chrome **/
 @media screen and (-webkit-min-device-pixel-ratio:0) {.veToolbarAdvMode .veButton_veGlowFont{margin:-22px 1px 1px 124px !important;}}
 
-.veToolbarAdvMode .veFontStyleToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px; width:172px}
+.veToolbarAdvMode .veFontStyleToolbar {width:168px}
 
-.veToolbarAdvMode .veButton_veOrderedList {margin:26px 0 0 -112px}
-.veToolbarAdvMode .veButton_veUnorderedList {margin:26px 0 0 -85px}
-.veToolbarAdvMode .veButton_veTabLeft {margin:26px 0 0 -55px}
-.veToolbarAdvMode .veButton_veTabRight {margin:26px 0 0 -28px}
-.veToolbarAdvMode .veJustifyToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px; width:112px}
+.veToolbarAdvMode .veButton_veOrderedList {margin:26px 0 0 -110px}
+.veToolbarAdvMode .veButton_veUnorderedList {margin:26px 0 0 -83px}
+.veToolbarAdvMode .veButton_veTabLeft {margin:26px 0 0 -53px}
+.veToolbarAdvMode .veButton_veTabRight {margin:26px 0 0 -26px}
+.veToolbarAdvMode .veJustifyToolbar {border-right:1px solid #c1c1c1; width:110px}
+.veToolbarAdvMode .veButton_veComposingMiddle {margin-right:0;}
 
 .veToolbarAdvMode .veButton_veEmotion {width:35px; height:50px}
 .veToolbarAdvMode .veButton .veEmotion {width:35px; height:50px; background-position:0 -90px}
@@ -92,8 +100,6 @@ body:nth-of-type(1) .veToolbarAdvMode .veButton_veGlowFont {margin:-22px 0 0 124
 .veToolbarAdvMode .veButton .veUploadWord {width:35px; height:50px; background-position:-315px -90px}
 .veToolbarAdvMode .veButton_over .veUploadWord {background-position:-315px -141px}
 .veToolbarAdvMode .veButton_disabled .veUploadWord {background-position:-315px -192px}
-
-.veToolbarAdvMode .veAdvToolbar {border-right:1px solid #c1c1c1; padding-right:7px; margin-right:5px}
 
 .veToolbarAdvMode .veButton_veHtml {margin:26px 0 0 -50px}
 .veToolbarAdvMode .veButton_veCode {margin:26px 0 0 70px; position:absolute;}

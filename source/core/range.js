@@ -1144,6 +1144,10 @@
 				}
 
 				var bookmark = this.createBookmark(), start = bookmark.start, end;
+				if(!start || !start.parentNode || !start.parentNode.outerHTML){
+					console.log('哎呀，错误发生了，有人在不断的搞焦点');
+					return;
+				}
 
 				ieRng = this.doc.body.createTextRange();
 				try {ieRng.moveToElementText(start);} catch(ex){};

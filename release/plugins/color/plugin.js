@@ -55,7 +55,7 @@
 
 				ve.dom.event.add(mBtn, 'mouseover', function(){ve.dom.addClass(btnDom, 'veColorDropBtn_hover_main');});
 				ve.dom.event.add(mBtn, 'mouseout', function(){ve.dom.removeClass(btnDom, 'veColorDropBtn_hover_main');});
-				ve.dom.event.add(mBtn, 'click', function(){_this.editor.editorcommands.execCommand('color', _CUR_COLOR);});
+				ve.dom.event.add(mBtn, 'click', function(){_this.editor.execCommand('color', _CUR_COLOR);});
 
 				ve.dom.event.add(lBtn, 'mouseover', function(){ve.dom.addClass(btnDom, 'veColorDropBtn_hover_drop');});
 				ve.dom.event.add(lBtn, 'mouseout', function(){ve.dom.removeClass(btnDom, 'veColorDropBtn_hover_drop');});
@@ -63,7 +63,7 @@
 					if(!colorPicker){
 						loadColorPicker(pickerUrl, btnDom, _this.editor, function(color){
 							_this.updateControlColor(color);
-							_this.editor.editorcommands.execCommand('color', color);
+							_this.editor.execCommand('color', color);
 						},
 						function(picker){
 							colorPicker = picker;

@@ -86,7 +86,7 @@
 				},
 				onChange: function(val){
 					var curList = this;
-					_this.editor.editorcommands.execCommand(curList.conf.cmd, curList.conf.ui, val);
+					_this.editor.execCommand(curList.conf.cmd, curList.conf.ui, val);
 				},
 				items: [
 					['宋体','宋体', 'style=\"font-family:Simson\"'],
@@ -120,7 +120,7 @@
 					});
 				},
 				onChange: function(val){
-					_this.editor.editorcommands.execCommand(this.conf.cmd, this.conf.ui, val);
+					_this.editor.execCommand(this.conf.cmd, this.conf.ui, val);
 				},
 				items: [
 				['10px','7(10px)', 'style=\"font-size:10px\"', null, 'padding-top:0px'],
@@ -153,7 +153,7 @@
 				},
 				onClick: function(){
 					var cmd = this.toggleActive() ? 'Bold' : 'UnBold';
-					_this.editor.editorcommands.execCommand(cmd);
+					_this.editor.execCommand(cmd);
 				}
 			});
 
@@ -168,7 +168,7 @@
 				},
 				onClick: function(){
 					var cmd = this.toggleActive() ? 'Italic' : 'UnItalic';
-					_this.editor.editorcommands.execCommand(cmd);
+					_this.editor.execCommand(cmd);
 				}
 			});
 
@@ -183,7 +183,7 @@
 				},
 				onClick: function(){
 					var cmd = this.toggleActive() ? 'Underline' : 'UnUnderline';
-					_this.editor.editorcommands.execCommand(cmd);
+					_this.editor.execCommand(cmd);
 				}
 			});
 		}

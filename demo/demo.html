@@ -15,8 +15,11 @@
 	var editor = VEditor.create({
 		container: 'ed1',
 		height: 200,
-		plugins: 'font,color,textjustify,history,link,toolbarswitcher,xpaste,htmleditor,emotion',
-		buttons: 'save|undo,redo|fontname,fontsize|color|bold,italic,underline|justifyleft,justifycenter,justifyright,justifyfull,link,emotion'
+		plugins: 'font,color,textjustify,history,link,toolbarswitcher,xpaste,htmleditor,emotion,image',
+		buttons: 'save|undo,redo|fontname,fontsize|color|bold,italic,underline|justifyleft,justifycenter,justifyright,justifyfull,link,emotion,image',
+		image: {
+			uploadUrl: '/veditor/demo/res/test_result.html'
+		}
 	});
 </script>
 

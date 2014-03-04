@@ -15,22 +15,7 @@
 	var ORI_PAGECONTAINER_STYLE;
 
 	var IE6_HANDLER = function(){
-		QZONE.FP._t.QZFL.dialog.create('温馨提示',
-			'<p style="padding:15px;line-height:24px;font-size:14px;">您使用的浏览器版本过低，目前暂不能支持日志编辑器全屏模式。'+
-			'立即升级浏览器<br/><a href="http://www.google.com/intl/zh-CN/chrome/browser/" target="_blank">Chrome</a> '+
-			'<br/><a href="http://www.microsoft.com/en-us/download/details.aspx?id=43" target="_blank">Internet Explorer8</a> '+
-			'<br/><a href="http://www.mozilla.org/en-US/firefox/new/" target="_blank">Firefox</a> <br/>获得完美的空间体验！</p>',
-			{
-				width:400,
-				height:150,
-				showMask:true,
-				buttonConfig: [{
-				   type : QZFL.dialog.BUTTON_TYPE.Cancel,
-				   text : '关闭',
-				   tips : '关闭'
-				}]
-		  }
-		);
+		QZBlog.Util.popupDialog('浏览器升级', {src:'/qzone/app/blog/dialog/browserupdate.html'},  450, 210);
 	};
 
 	/**

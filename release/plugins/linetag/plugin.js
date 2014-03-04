@@ -8,15 +8,20 @@
 		init: function (editor, url) {
 			var _this = this;
 			this.editor = editor;
-			this.editor.onKeyDown.add(function(e){
-				if(e.keyCode == 13 && !e.ctrlKey){
-					_this.editor.tryIO('addHistory', function(fn){return fn()});
-					_this.insertNewLine();
-					_this.editor.tryIO('addHistory', function(fn){return fn()});
-					ve.dom.event.cancel(e);
-					return false;
-				}
-			});
+
+			var _bind = function(addHistory){
+				_this.editor.onKeyDown.add(function(e){
+					if(e.keyCode == 13 && !e.ctrlKey){
+						_this.editor.updateLastVERange();	//这里需要先update，才能保证addHistory里面的range正确
+						addHistory && addHistory();
+						_this.insertNewLine();	//这里写这个更新range的原因是：updateLastVERange是在keyup时触发，因此这里keydown管不到
+						addHistory && addHistory();
+						ve.dom.event.cancel(e);
+						return false;
+					}
+				});
+			};
+			this.editor.tryIO('addHistory', _bind, _bind);
 		},
 
 		insertNewLine: function(){

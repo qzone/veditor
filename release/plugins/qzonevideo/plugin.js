@@ -63,20 +63,15 @@
 			var _this = this;
 			try {
 				var id = _this.editor.id;
-				var data = QZONE.FP._t.g_arrQZEditorReturnVal[id];
+				var data = QZONE.FP._t.insertVideoContent[id];
 				if(data){
-					var VideoData;
-					if(data[0] < 2){	//用户上传和插入外链的格式是不一样的。
-						VideoData = _this._fixVideoData(data[1], data[2], data[3], null, null, null, data[5], data[4]);
-					} else {
-						VideoData = _this._fixVideoData(data[1], data[4], data[3], data[5], data[6], null, data[7], data[8], (data[9] ? QZFL.string.escHTML(data[9]) : ''));
-					}
-
+					var VideoData = _this._fixVideoData(data);
 					var cache_id = _this.setCache(VideoData);
-					var html = (['<img src="'+(VideoData.thumb || '/ac/b.gif')+'" alt="视频" cache_id="',cache_id,'" class="',_this.config.cssClassName,'" style="width:',VideoData.width,'px; height:',VideoData.height,'px"/>']).join('');
+
+					var html = '<img src="'+(VideoData.thumb || '/ac/b.gif')+'" alt="视频" cache_id="'+cache_id+'" class="'+_this.config.cssClassName+'" style="width:'+VideoData.width+'px; height:'+VideoData.height+'px"/>';
 					_this.editor.insertHtml({content:html});
 				}
-				QZONE.FP._t.g_arrQZEditorReturnVal[id] = null;
+				QZONE.FP._t.insertVideoContent[id] = null;
 			} catch(ex){};
 		},
 
@@ -106,16 +101,24 @@
 						var videoThumb = /videothumb="([^"]+)"/i.exec(arguments[1]) || [];
 						var videoTitle = /videotitle="([^"]+)"/i.exec(arguments[1]) || [];
 						var videosource = /videosource="([^"]+)"/i.exec(arguments[1]) || [];
-						var src = /src="([^"]+)"/i.exec(arguments[1]);
+						var src = /src="([^"]+)"/i.exec(arguments[1]) || [];
 						var count = 0;
 
-						var VideoData = _this._fixVideoData(src[1], w[1], h[1], loop[1], autostart[1], null, videoThumb[1], (videoTitle[1] ? decodeURI(videoTitle[1]).replace(/\%2b/ig, '+') : ''), videosource[1]);
+						var VideoData = _this._fixVideoData({
+							pre: videoThumb[1],
+							pageUrl: videosource[1],
+							title: decodeURI(videoTitle[1] || '').replace(/\%2b/ig, '+'),
+							width: w[1],
+							height: h[1],
+							playerUrl: src[1],
+							autostart: autostart[1],
+							loop: loop[1]
+						});
 						var cache_id = _this.setCache(VideoData);
-						return (['<img src="'+(VideoData.thumb || '/ac/b.gif')+'" class="blog_video" style="width:',VideoData.width,'px;height:',VideoData.height,'px;" cache_id="',cache_id,'" />']).join('');
+						return '<img src="'+(VideoData.thumb || '/ac/b.gif')+'" class="blog_video" style="width:'+VideoData.width+'px;height:'+VideoData.height+'px;" cache_id="'+cache_id+'" />';
 					}
 				} catch(err){
-					//console.log('set content err', err);
-					//console.log('set content err', err);
+					console.log('set content err', err);
 				}
 				return arguments[0];
 			});
@@ -187,19 +190,20 @@
 		 * @param  {boolean} allowfullscreen 允许全屏
 		 * @param  {string} thumb           缩略图
 		 * @param  {string} title			视频标题
-		 * @param {String} srcUrl 			视频页面url
+		 * @param {String} videosource 			视频页面url
 		 */
-		_fixVideoData: function(source, width, height, loop, autostart, allowfullscreen, thumb, title, videosource){
+		_fixVideoData: function(data){
 			var vD = {
-				'source': source,
-				'width': parseInt(width, 10) || this.config.defaultVideoWidth,
-				'height': parseInt(height, 10) || this.config.defaultVideoHeight,
-				'loop': (loop && (loop == 1 || loop.toLowerCase()=='true')) ? 'true' : 'false',
-				'autostart': (autostart && (autostart == 1 || autostart.toLowerCase()=='true')) ? 'true' : 'false',
-				'allowfullscreen': (allowfullscreen && (allowfullscreen == 1 || allowfullscreen.toLowerCase()=='true')) ? 'true' : 'false',
-				'thumb': thumb || '',
-				'title': title || '',
-				'videosource': videosource || ''
+				'source': data.playerUrl,
+				'width': parseInt(data.width, 10) || this.config.defaultVideoWidth,
+				'height': parseInt(data.height, 10) || this.config.defaultVideoHeight,
+				'autoplay': data.autoplay,
+				'loop': (data.loop || data.autoecho) ? 'true' : 'false',
+				'autostart': (data.autoplay || data.autostart) ? 'true' : 'false',
+				'allowfullscreen': data.allowfullscreen ? 'true' : 'false',
+				'thumb': data.pre || '',
+				'title': data.title || '',
+				'videosource': data.pageUrl || ''
 			}
 			return vD;
 		},

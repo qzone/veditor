@@ -4,14 +4,15 @@
 	var TOP_DOC = TOP_WIN.document;
 	var pQZFL = TOP_WIN.QZFL;
 	var LAST_TOOLBAR_TOP = 0;
-	var TOP_EDITOR_CSS_LNKID = 'qzoneblog_veditor_css_link';
 
+	var FAKE_MASK_ID = 'qzoneblog_veditor_fake_mask';
+	var TOP_EDITOR_CSS_LNKID = 'qzoneblog_veditor_css_link';
 	var TOP_EDITOR_BASE_TB_LNKID = 'qzoneblog_base_tb_link';
 	var TOP_EDITOR_ADV_TB_LNKID = 'qzoneblog_adv_tb_link';
 
-	var GLOBAL_CSS = '/qzone/veditor/source/view/def/css/global.css';
-	var BASE_TB_CSS = '/qzone/veditor/source/plugins/toolbarswitcher/base.css';
-	var ADV_TB_CSS = '/qzone/veditor/source/plugins/toolbarswitcher/advance.css';
+	var GLOBAL_CSS = '/qzone/veditor/release/view/def/css/global.css';
+	var BASE_TB_CSS = '/qzone/veditor/release/plugins/toolbarswitcher/base.css';
+	var ADV_TB_CSS = '/qzone/veditor/release/plugins/toolbarswitcher/advance.css';
 
 	//原有css保存
 	var toolbarContainerOriCss;
@@ -63,8 +64,6 @@
 			});
 
 			PageScheduler.addEvent('pageunload', function(){
-				pQZFL.event.removeEvent(TOP_WIN, 'scroll', _this.startToolbarScroll);
-				_this.hideFakeMask();
 				_this._removeFakeMask();
 			});
 
@@ -96,7 +95,20 @@
 
 			editor.onInitComplete.add(function(){
 				setTimeout(function(){
-					pQZFL.event.addEvent(TOP_WIN, 'scroll', _this.startToolbarScroll, [_this]);
+					if(!parent.VEDITOR_TOOLBAR_PIN){
+						var loader = new parent.QZFL.JsLoader();	//这里只能用loader，需要强制重新加载一次
+						loader.onload = function(){
+							if(parent.VEDITOR_TOOLBAR_PIN){
+								parent.VEDITOR_TOOLBAR_PIN.onScroll = function(ev){
+									_this.startToolbarScroll(ev, _this);
+								};
+								parent.VEDITOR_TOOLBAR_PIN.start();
+							};
+						};
+						loader.load(url+'scroll.js', null, {"charset":"utf-8"});
+					} else {
+						parent.VEDITOR_TOOLBAR_PIN.start();
+					}
 				}, 300);
 			});
 		},
@@ -124,6 +136,7 @@
 			}
 
 			this._fakeMask = TOP_DOC.createElement('DIV');
+			this._fakeMask.id = FAKE_MASK_ID;
 			this._fakeMask.style.cssText = 'border-bottom:1px solid #ccc; background-color:#eee';
 			frameElement.parentNode.appendChild(this._fakeMask);
 
@@ -189,7 +202,11 @@
 				toolbar.style.position = '';
 				toolbar.style.zIndex = '';
 				newTC.style.borderBottom = '1px solid white';
-				this._fakeMask.appendChild(newTC);
+				try {
+					this._fakeMask.appendChild(newTC);
+				} catch(ex){
+					//ie7
+				}
 			}
 		},
 

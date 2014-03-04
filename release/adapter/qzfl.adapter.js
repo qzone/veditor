@@ -1,4 +1,4 @@
-﻿(function(window, document, ve, undefined) {
+(function(window, document, ve, undefined) {
 	if(!QZFL){
 		throw "NO QZFL FOUND";
 	}
@@ -69,7 +69,11 @@
 		hasClass: QZFL.css.hasClassName,
 		addClass: QZFL.css.addClassName,
 		removeClass: QZFL.css.removeClassName,
-		contains: QZFL.dom.contains,
+		contains: function(container, child){
+			if(container.nodeType == 3){return false;}
+			return container.contains ? container != child && container.contains(child) :
+				!!(container.compareDocumentPosition(child) & 16);
+		},
 		convertHexColor: QZFL.css.convertHexColor,
 		getScrollLeft: QZFL.dom.getScrollLeft,
 		getScrollTop: QZFL.dom.getScrollTop,
@@ -88,6 +92,42 @@
                 parent.removeChild(node);
             }
             return node;
+		},
+
+		/**
+		 * 加载图片队列
+		 * @param {Array} imgSrcList
+		 * @param {Function} doneCb	完成回调（包括失败）
+		 **/
+		loadImageQueue: function(imgSrcList, doneCb){
+			var len = imgSrcList.length;
+			var count = 0;
+			var infoList = {};
+
+			var allDone = function(){
+				var result = [];
+				ve.lang.each(imgSrcList, function(item, index){
+					result.push(infoList[item]);
+				});
+				doneCb(result);
+			};
+
+			ve.lang.each(imgSrcList, function(src){
+				infoList[src] = {width:null, height:null, src:src};
+				var img = new Image();
+				img.onload = function(){
+					infoList[this.src] = {width: this.width, height: this.height, src:this.src};
+					if(++count == len){
+						allDone();
+					}
+				};
+				img.onerror = function(){
+					if(++count == len){
+						allDone();
+					}
+				};
+				img.src = src;
+			});
 		},
 
 		/**

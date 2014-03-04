@@ -1,0 +1,83 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>插插图</title>
+        <script>
+			var getParameter = function(name, str){
+				var r = new RegExp("(\\?|#|&)" + name + "=([^&#]*)(&|#|$)");
+				var m = (str || location.href).match(r);
+				return (!m?"":m[2]);
+			};
+			var dm = getParameter('domain');
+			if(dm){document.domain = dm;}
+        </script>
+        <style>
+			* {margin:0; padding:0}
+			body {font-size:12px; font-family:Microsoft Yahei, Simsun}
+			ul, li {display:block;}
+			.none {display:none;}
+			.txt {border:1px solid #ddd; border-left-color:#aaa; border-top-color:#aaa; padding:2px 2px;}
+			.txt-w, .txt-h, .txt-bor, .txt-mgr{width:30px;}
+			.btn {padding:3px 7px}
+			.img {background:url("bg.png"); width:120px; height:120px; overflow:hidden; float:left; margin-right:10px; border:1px solid #ddd;}
+			.desc {color:#ccc;}
+			div.img-loading {background:url("loading.gif") no-repeat center;}
+			div.img-loading img {display:none;}
+
+			.nav {border-bottom:1px solid #ccc; height:24px; margin:0 10px;}
+			.nav li {float:left; border:1px solid #ccc; height:23px; line-height:23px; overflow:hidden; margin-left:7px;}
+			.nav span {display:block; padding:0 10px; cursor:pointer; color:#bbb;}
+			.nav .current {border-bottom-color:white;}
+			.nav .current span {color:black;}
+
+			.con {padding:20px 10px 0 10px;}
+			.con .row {margin-bottom:10px;}
+			.con .op {text-align:right;}
+			.con .txt-addr {width:280px;}
+        </style>
+    </head>
+    <body>
+		<ul class="nav" id="nav">
+			<li class="none" id="remote-tab"><span>网络图片</span></li>
+			<li id="local-tab" class="none"><span>本地上传</span></li>
+		</ul>
+
+		<div class="con">
+			<div class="img" id="img-con">
+				<img alt="" id="img" style="display:none">
+			</div>
+			<p id="remote-panel" class="row none">
+				<label for="">地址：</label>
+				<input type="text" class="txt txt-addr" name="addr" id="remote-addr">
+			</p>
+			<div id="local-panel" class="row none">
+				<form action="" enctype="multipart/form-data" method="POST" id="remote-form">
+					<label for="">上传文件：</label>
+					<input type="file" name="" id="local-file">
+				</form>
+			</div>
+			<p class="row">
+				<label for="">大小：</label>
+				<input type="text" class="txt txt-w" name="" id="txt-w" title="宽度"> x
+				<input type="text" class="txt txt-h" name="" id="txt-h" title="高度">
+				<span class="desc">（像素）</span>
+			</p>
+			<p class="row">
+				<label for="">边框：</label>
+				<input type="text" class="txt txt-bor" name="" id="txt-b">
+				<span class="desc">（像素）</span>
+			</p>
+			<p class="row">
+				<label for="">边距：</label>
+				<input type="text" class="txt txt-mgr" name="" id="txt-m">
+				<span class="desc">（像素）</span>
+			</p>
+			<p class="row op">
+				<input type="submit" value="插入图片" class="btn" id="insert-btn">
+			</p>
+		</div>
+		<script src="formposter.js" charset="UTF-8"></script>
+		<script src="image.js" charset="UTF-8"></script>
+    </body>
+</html>

@@ -50,6 +50,7 @@
 				'../source/plugins/linetag/plugin.js',				//换行
 				'../source/plugins/history/plugin.js',				//历史
 				'../source/plugins/xpaste/plugin.js',				//粘贴
+				'../source/plugins/removeformat/plugin.js',				//粘贴
 				'../source/plugins/qzonemention/plugin.js',			//@
 			]
 		}
